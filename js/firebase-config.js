@@ -5,12 +5,13 @@
 // ══════════════════════════════════════════════════════════════
 
 const firebaseConfig = {
-  apiKey:            "COLE_AQUI_SUA_API_KEY",
-  authDomain:        "COLE_AQUI.firebaseapp.com",
-  projectId:         "COLE_AQUI_SEU_PROJECT_ID",
-  storageBucket:     "COLE_AQUI.appspot.com",
-  messagingSenderId: "COLE_AQUI_SENDER_ID",
-  appId:             "COLE_AQUI_APP_ID"
+  apiKey:            "AIzaSyB4QTfZNC2tbSuv4vku91xIHb_UsWhTRoM",
+  authDomain:        "precifica-ecom.firebaseapp.com",
+  projectId:         "precifica-ecom",
+  storageBucket:     "precifica-ecom.firebasestorage.app",
+  messagingSenderId: "290195119444",
+  appId:             "1:290195119444:web:67bae42d8e8ae4fbd63cc1",
+  measurementId:     "G-TVD9KDSSLX"
 };
 
 firebase.initializeApp(firebaseConfig);
