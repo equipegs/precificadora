@@ -11,6 +11,43 @@
 <body>
 <div id="app">
 
+  <!-- ── PAYWALL ── -->
+  <div id="screen-paywall" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-glow"></div>
+      <div class="logo-big"><span class="green">Precifica</span>Flow</div>
+      <div class="auth-version">v2.0</div>
+      <div id="paywall-content">
+        <p class="auth-sub" style="margin-bottom:24px">Escolha seu plano para continuar</p>
+        <div class="plan-card">
+          <div class="plan-header">
+            <span class="plan-name">Plano Mensal</span>
+            <span class="plan-trial">10 dias grátis</span>
+          </div>
+          <div class="plan-price">R$ 19,90<span class="plan-period">/mês</span></div>
+          <ul class="plan-features">
+            <li>✅ Todos os marketplaces</li>
+            <li>✅ Produtos ilimitados na nuvem</li>
+            <li>✅ Dashboard e alertas</li>
+            <li>✅ Simulador e comparador</li>
+            <li>✅ Cancele quando quiser</li>
+          </ul>
+          <button class="btn-stripe" onclick="irParaStripe()">Começar 10 dias grátis →</button>
+          <p style="font-size:11px;color:var(--text3);margin-top:8px">Cartão necessário. Cancele antes de 10 dias e não paga nada.</p>
+        </div>
+        <div class="coupon-section">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Tem um cupom de acesso?</p>
+          <div class="coupon-row">
+            <input type="text" id="coupon-input" placeholder="Digite seu cupom" class="coupon-field" oninput="this.value=this.value.toUpperCase()"/>
+            <button class="btn-coupon" onclick="aplicarCupom()">Aplicar</button>
+          </div>
+          <p id="coupon-msg" style="font-size:12px;margin-top:8px;height:18px"></p>
+        </div>
+        <button class="btn-logout-paywall" onclick="logout()">← Sair / trocar conta</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── AUTH ── -->
   <div id="screen-auth" class="screen active">
     <div class="auth-wrap">
@@ -125,6 +162,28 @@
                   <option value="outros">Outros</option>
                 </select>
               </div>
+              <div class="section-sub">🏷️ Identificação e Fornecedor</div>
+              <div class="field-row">
+                <div class="field"><label>SKU</label><input type="text" id="f-sku" placeholder="Ex: PROD-001"/></div>
+                <div class="field"><label>EAN / Código de barras</label><input type="text" id="f-ean" placeholder="Ex: 7891234567890"/></div>
+              </div>
+              <div class="field"><label>Fornecedor</label><input type="text" id="f-fornecedor" placeholder="Ex: Fornecedor ABC Ltda"/></div>
+            </div>
+
+            <!-- PREÇOS ATUAIS -->
+            <div class="card">
+              <div class="card-label">💰 Preços Praticados Hoje <span class="label-hint">opcional — preencha se já estiver anunciado</span></div>
+              <p class="config-hint" style="margin-bottom:12px">Informe o preço que você vende hoje. O sistema calcula a margem real e alerta se estiver abaixo do mínimo.</p>
+              <div class="field-row">
+                <div class="field"><label>Mercado Livre (R$)</label><input type="number" id="f-preco-ml" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+                <div class="field"><label>Shopee (R$)</label><input type="number" id="f-preco-shopee" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>TikTok Shop (R$)</label><input type="number" id="f-preco-tiktok" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+                <div class="field"><label>Magalu (R$)</label><input type="number" id="f-preco-magalu" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              </div>
+              <div class="field"><label>Venda Direta (R$)</label><input type="number" id="f-preco-direta" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              <div id="box-margens-atuais" style="display:none;margin-top:10px"></div>
             </div>
 
             <!-- 3D -->
@@ -479,3 +538,4 @@
 <script src="js/app.js"></script>
 </body>
 </html>
+
