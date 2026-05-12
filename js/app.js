@@ -127,7 +127,7 @@ async function loadProducts(){
   if(!currentUser||!db)return;
   const el=document.getElementById('products-list');
   el.innerHTML='<p style="color:var(--text2);font-size:13px;padding:8px">Carregando...</p>';
-  const catFiltro=document.getElementById('filtro-cat')?.value||'';
+  const catFiltroEl=document.getElementById('filtro-cat');const catFiltro=catFiltroEl?catFiltroEl.value:'';
   try{
     let query=db.collection('users').doc(currentUser.uid).collection('produtos').orderBy('savedAt','desc');
     const snap=await query.get();
@@ -166,7 +166,7 @@ async function loadProducts(){
 // ── COMPARAR ──────────────────────────────────
 function toggleCompare(id,checked){
   if(checked&&compareList.length>=3){showToast('Máximo 3 produtos para comparar','error');
-    document.getElementById(`pc-${id}`)?.querySelector('.compare-check').checked=false;return;}
+    const cb=document.getElementById(`pc-${id}`);if(cb){const chk=cb.querySelector('.compare-check');if(chk)chk.checked=false;}return;}
   if(checked)compareList.push(id);
   else compareList=compareList.filter(x=>x!==id);
   const bar=document.getElementById('compare-bar');
