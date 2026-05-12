@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PrecificaFlow 2.0</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── AUTH ── -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-wrap">
+      <div class="auth-glow"></div>
+      <div class="logo-big"><span class="green">Precifica</span>Flow</div>
+      <div class="auth-version">v2.0</div>
+      <p class="auth-sub">Precificadora inteligente para Ecommerce</p>
+      <div class="auth-badges">
+        <span class="badge">ML · Shopee · TikTok · Magalu</span>
+        <span class="badge green-badge">☁️ Dados na nuvem</span>
+        <span class="badge green-badge">📱 Funciona no celular</span>
+      </div>
+      <button class="btn-google" onclick="loginGoogle()">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.5 19 12 24 12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.4 35.5 26.8 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.2 5.2C43 34.9 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+        Entrar com Google
+      </button>
+      <p class="auth-note">Seus produtos ficam salvos na sua conta Google.<br/>Acesse de qualquer dispositivo, a qualquer hora.</p>
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ── -->
+  <div id="screen-app" class="screen">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-sm"><span class="green">P</span>F</div>
+        <span class="logo-text"><span class="green">Precifica</span>Flow</span>
+        <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" onclick="showPage('dashboard')" data-page="dashboard"><span class="nav-icon">📊</span><span>Dashboard</span></button>
+        <button class="nav-item" onclick="showPage('calc')" data-page="calc"><span class="nav-icon">🧮</span><span>Calcular</span></button>
+        <button class="nav-item" onclick="showPage('products')" data-page="products"><span class="nav-icon">📦</span><span>Meus Produtos</span></button>
+        <button class="nav-item" onclick="showPage('simulator')" data-page="simulator"><span class="nav-icon">🎛️</span><span>Simulador</span></button>
+        <button class="nav-item" onclick="showPage('hubs')" data-page="hubs"><span class="nav-icon">🔗</span><span>Central Hubs</span></button>
+        <button class="nav-item" onclick="showPage('config')" data-page="config"><span class="nav-icon">⚙️</span><span>Configurações</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info" id="user-info"></div>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="topbar">
+        <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <div class="topbar-right">
+          <button class="btn-topbar" onclick="showPage('calc')">+ Novo Cálculo</button>
+          <span class="user-avatar" id="user-avatar"></span>
+        </div>
+      </div>
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="page active" id="page-dashboard">
+        <div id="dash-empty" class="empty-state" style="display:none">
+          <div class="empty-icon">📊</div>
+          <p>Nenhum produto salvo ainda.<br/>Faça seu primeiro cálculo!</p>
+          <button class="btn-primary" onclick="showPage('calc')" style="margin-top:16px">+ Primeiro Cálculo</button>
+        </div>
+        <div id="dash-content">
+          <div class="dash-stats" id="dash-stats"></div>
+          <div class="dash-grid">
+            <div class="card" id="dash-produtos-card">
+              <div class="card-label">📦 Últimos Produtos</div>
+              <div id="dash-produtos"></div>
+            </div>
+            <div class="card" id="dash-margens-card">
+              <div class="card-label">📈 Melhores Margens (Meta 10%)</div>
+              <div id="dash-margens"></div>
+            </div>
+          </div>
+          <div class="card" id="dash-alertas-card" style="display:none">
+            <div class="card-label">⚠️ Alertas de Margem Baixa</div>
+            <div id="dash-alertas"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ CALCULAR ══ -->
+      <div class="page" id="page-calc">
+        <div class="calc-layout">
+          <div class="calc-left">
+
+            <div class="card">
+              <div class="card-label">📦 Dados do Produto</div>
+              <div class="mode-toggle">
+                <button class="mode-btn active" id="mode-normal" onclick="setMode('normal')">Produto Normal</button>
+                <button class="mode-btn" id="mode-3d" onclick="setMode('3d')">Impressão 3D</button>
+              </div>
+              <div class="field"><label>Nome do produto</label><input type="text" id="f-nome" placeholder="Ex: Suporte articulado para celular"/></div>
+              <div class="field-row">
+                <div class="field"><label>Custo do produto (R$)</label><input type="number" id="f-custo" placeholder="0,00" step="0.01" oninput="calcular()"/></div>
+                <div class="field"><label>Embalagem (R$)</label><input type="number" id="f-embalagem" placeholder="0,00" step="0.01" value="0" oninput="calcular()"/></div>
+              </div>
+              <div class="section-sub">📐 Dimensões e Peso</div>
+              <div class="field-row">
+                <div class="field"><label>Comprimento (cm)</label><input type="number" id="f-comp" placeholder="0" step="0.1"/></div>
+                <div class="field"><label>Altura (cm)</label><input type="number" id="f-alt" placeholder="0" step="0.1"/></div>
+                <div class="field"><label>Largura (cm)</label><input type="number" id="f-larg" placeholder="0" step="0.1"/></div>
+              </div>
+              <div class="field"><label>Peso do produto (kg)</label><input type="number" id="f-peso" placeholder="0,3" step="0.1" value="0.3" oninput="calcular()"/></div>
+              <div class="field">
+                <label>Categoria</label>
+                <select id="f-categoria">
+                  <option value="">— Sem categoria —</option>
+                  <option value="eletronicos">Eletrônicos</option>
+                  <option value="acessorios">Acessórios</option>
+                  <option value="casa">Casa e Decoração</option>
+                  <option value="moda">Moda</option>
+                  <option value="3d">Impressão 3D</option>
+                  <option value="brinquedos">Brinquedos</option>
+                  <option value="outros">Outros</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 3D -->
+            <div class="card" id="card-3d" style="display:none">
+              <div class="card-label">🖨️ Impressão 3D</div>
+              <div class="field">
+                <label>Impressora (pré-configurada)</label>
+                <select id="f-impressora" onchange="aplicarPreset()">
+                  <option value="">— Selecionar impressora —</option>
+                  <option value="165">Bambu Lab A1 Mini (165W)</option>
+                  <option value="350">Bambu Lab A1 (350W)</option>
+                  <option value="350">Bambu Lab P1P (350W)</option>
+                  <option value="350">Bambu Lab P1S (350W)</option>
+                  <option value="350">Bambu Lab X1 Carbon (350W)</option>
+                  <option value="500">Bambu Lab H2D (500W)</option>
+                  <option value="250">Creality Ender 3 (250W)</option>
+                  <option value="custom">Outra (manual)</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Filamento (g)</label><input type="number" id="f-gramas" placeholder="0" step="1" oninput="calcular()"/></div>
+                <div class="field"><label>R$/kg filamento</label><input type="number" id="f-custo-fil" placeholder="0,00" step="0.01" oninput="calcular()"/></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Tempo impressão (h)</label><input type="number" id="f-horas" placeholder="0" step="0.5" oninput="calcular()"/></div>
+                <div class="field"><label>Potência (W)</label><input type="number" id="f-watts" placeholder="350" step="10" value="350" oninput="calcular()"/></div>
+              </div>
+              <div class="field"><label>Tarifa energia (R$/kWh)</label><input type="number" id="f-kwh" placeholder="0,90" step="0.01" value="0.90" oninput="calcular()"/></div>
+              <div class="section-sub">👷 Mão de Obra</div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Custo/hora (R$)</label>
+                  <input type="number" id="f-mao-hora" placeholder="35,00" step="1" value="35" oninput="calcular()"/>
+                  <span class="field-hint">R$35/h = referência mercado maker SP • ajuste conforme sua especialização</span>
+                </div>
+                <div class="field">
+                  <label>Tempo de trabalho (min)</label>
+                  <input type="number" id="f-mao-min" placeholder="0" step="1" value="0" oninput="calcular()"/>
+                </div>
+              </div>
+              <div class="info-box" id="box-3d" style="display:none">
+                <div class="info-row"><span>Custo filamento</span><span id="v-fil" class="mono">R$ 0,00</span></div>
+                <div class="info-row"><span>Custo energia</span><span id="v-energia" class="mono">R$ 0,00</span></div>
+                <div class="info-row"><span>Mão de obra</span><span id="v-mao" class="mono">R$ 0,00</span></div>
+                <div class="info-row strong"><span>Total 3D</span><span id="v-3d-total" class="mono green">R$ 0,00</span></div>
+              </div>
+            </div>
+
+            <!-- DESPESAS -->
+            <div class="card">
+              <div class="card-label">📋 Despesas Gerais <span class="label-hint">% sobre valor de venda</span></div>
+              <div class="field-row">
+                <div class="field"><label>Insumos (%)</label><input type="number" id="f-insumos" value="3" step="0.5" oninput="calcular()"/></div>
+                <div class="field"><label>Nota Fiscal (%)</label><input type="number" id="f-nf" value="8" step="0.5" oninput="calcular()"/></div>
+                <div class="field"><label>Frete (%)</label><input type="number" id="f-frete" value="0" step="0.5" oninput="calcular()"/></div>
+              </div>
+            </div>
+
+            <!-- METAS -->
+            <div class="card">
+              <div class="card-label">🎯 Margem Mínima e Metas de Lucro <span class="label-hint">% sobre venda</span></div>
+              <div class="field">
+                <label>⚠️ Margem mínima aceitável (%)</label>
+                <input type="number" id="f-margem-min" value="10" step="1" oninput="calcular()"/>
+                <span class="field-hint">Alertas aparecem no Dashboard quando abaixo disso</span>
+              </div>
+              <div class="field-row" style="margin-top:10px">
+                <div class="field"><label>Meta 1 (%)</label><input type="number" id="f-l1" value="5" step="1" oninput="calcular()"/></div>
+                <div class="field"><label>Meta 2 (%)</label><input type="number" id="f-l2" value="10" step="1" oninput="calcular()"/></div>
+                <div class="field"><label>Meta 3 (%)</label><input type="number" id="f-l3" value="15" step="1" oninput="calcular()"/></div>
+                <div class="field"><label>Meta 4 (%)</label><input type="number" id="f-l4" value="20" step="1" oninput="calcular()"/></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: RESULTS -->
+          <div class="calc-right">
+            <div id="alert-custo" class="alert-box">Preencha o custo do produto para ver os resultados.</div>
+
+            <!-- ML -->
+            <div class="card mp-card">
+              <div class="mp-header-row">
+                <div class="mp-badge" style="background:#FFE600;color:#000">ML</div>
+                <span class="mp-name">Mercado Livre</span>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Tipo de anúncio</label>
+                  <select id="ml-tipo" onchange="mlTipoChanged()">
+                    <option value="classico">Clássico</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Taxa (%)</label>
+                  <input type="number" id="ml-taxa" value="14" step="0.5" oninput="calcular()"/>
+                </div>
+                <div class="field">
+                  <label>Envio</label>
+                  <select id="ml-envio" onchange="calcular()">
+                    <option value="proprio">Próprio</option>
+                    <option value="full">Full ML</option>
+                  </select>
+                </div>
+              </div>
+              <div id="ml-custo-op" class="info-mini"></div>
+              <div id="ml-results" class="mp-results"></div>
+            </div>
+
+            <!-- SHOPEE -->
+            <div class="card mp-card">
+              <div class="mp-header-row">
+                <div class="mp-badge" style="background:#EE4D2D;color:#fff">SP</div>
+                <span class="mp-name">Shopee</span>
+                <span class="badge-tag" style="background:rgba(238,77,45,0.15);color:#ee4d2d">Escalonada</span>
+              </div>
+              <div id="shopee-results" class="mp-results"></div>
+            </div>
+
+            <!-- TIKTOK -->
+            <div class="card mp-card">
+              <div class="mp-header-row">
+                <div class="mp-badge" style="background:#111;color:#00c87a">TT</div>
+                <span class="mp-name">TikTok Shop</span>
+              </div>
+              <div class="field-row" style="margin-bottom:10px">
+                <div class="field"><label>Taxa (%)</label><input type="number" id="tt-taxa" value="6" step="0.5" oninput="calcular()"/></div>
+                <div class="field"><label>Afiliado (%)</label><input type="number" id="tt-afil" value="5" step="0.5" oninput="calcular()"/></div>
+              </div>
+              <div id="tiktok-results" class="mp-results"></div>
+            </div>
+
+            <!-- MAGALU -->
+            <div class="card mp-card">
+              <div class="mp-header-row">
+                <div class="mp-badge" style="background:#0086FF;color:#fff">MG</div>
+                <span class="mp-name">Magalu</span>
+                <span class="label-hint" style="margin-left:auto;font-size:11px">14,8% + R$5,00 fixo</span>
+              </div>
+              <div id="magalu-results" class="mp-results"></div>
+            </div>
+
+            <!-- VENDA DIRETA -->
+            <div class="card mp-card">
+              <div class="mp-header-row">
+                <div class="mp-badge" style="background:#00c87a;color:#000">VD</div>
+                <span class="mp-name">Venda Direta</span>
+              </div>
+              <div class="field">
+                <label>Forma de pagamento</label>
+                <select id="vd-pagamento" onchange="calcular()">
+                  <option value="outros">Outros / Dinheiro / Pix (sem taxa)</option>
+                  <option value="debito">Débito</option>
+                  <option value="credito1">Crédito à vista (1x)</option>
+                  <option value="credito2">Crédito 2x</option>
+                  <option value="credito3">Crédito 3x</option>
+                  <option value="credito4">Crédito 4x</option>
+                  <option value="credito6">Crédito 6x</option>
+                  <option value="credito10">Crédito 10x</option>
+                  <option value="credito12">Crédito 12x</option>
+                </select>
+              </div>
+              <div id="vd-taxa-info" class="info-mini" style="margin-top:6px"></div>
+              <div id="direta-results" class="mp-results"></div>
+            </div>
+
+            <button class="btn-save-product" id="btn-salvar" onclick="salvarProduto()" style="display:none">💾 Salvar Produto</button>
+            <button class="btn-export" id="btn-export" onclick="exportarPDF()" style="display:none">📄 Exportar PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PRODUTOS ══ -->
+      <div class="page" id="page-products">
+        <div class="page-header">
+          <div><h2>Meus Produtos</h2><p class="page-sub">Histórico completo de precificações</p></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="filtro-cat" onchange="loadProducts()" class="filter-select">
+              <option value="">Todas categorias</option>
+              <option value="eletronicos">Eletrônicos</option>
+              <option value="acessorios">Acessórios</option>
+              <option value="casa">Casa e Decoração</option>
+              <option value="moda">Moda</option>
+              <option value="3d">Impressão 3D</option>
+              <option value="brinquedos">Brinquedos</option>
+              <option value="outros">Outros</option>
+            </select>
+            <button class="btn-primary" onclick="showPage('calc')">+ Novo</button>
+          </div>
+        </div>
+        <div id="compare-bar" class="compare-bar" style="display:none">
+          <span id="compare-count">0 selecionados</span>
+          <button class="btn-primary" onclick="compararProdutos()">Comparar</button>
+          <button class="btn-outline" onclick="limparComparacao()">Limpar</button>
+        </div>
+        <div id="products-list" class="products-grid"></div>
+      </div>
+
+      <!-- ══ SIMULADOR ══ -->
+      <div class="page" id="page-simulator">
+        <div class="page-header"><div><h2>Simulador "E se?"</h2><p class="page-sub">Arraste os sliders e veja os preços atualizarem em tempo real</p></div></div>
+        <div class="sim-layout">
+          <div class="card">
+            <div class="card-label">🎛️ Parâmetros</div>
+            <div class="field">
+              <label>Custo do produto: <strong id="sim-custo-val" class="green">R$ 50,00</strong></label>
+              <input type="range" id="sim-custo" min="5" max="500" value="50" step="1" oninput="simAtualizar()"/>
+            </div>
+            <div class="field">
+              <label>Meta de lucro: <strong id="sim-lucro-val" class="green">15%</strong></label>
+              <input type="range" id="sim-lucro" min="1" max="60" value="15" step="1" oninput="simAtualizar()"/>
+            </div>
+            <div class="field">
+              <label>Insumos + NF + Frete: <strong id="sim-desp-val" class="green">11%</strong></label>
+              <input type="range" id="sim-desp" min="0" max="40" value="11" step="0.5" oninput="simAtualizar()"/>
+            </div>
+            <div class="field">
+              <label>Peso (kg): <strong id="sim-peso-val" class="green">0.3 kg</strong></label>
+              <input type="range" id="sim-peso" min="0.1" max="11" value="0.3" step="0.1" oninput="simAtualizar()"/>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">💰 Preços em Tempo Real</div>
+            <div id="sim-results" class="sim-results"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ CENTRAL HUBS ══ -->
+      <div class="page" id="page-hubs">
+        <div class="page-header"><div><h2>🔗 Central Hubs</h2><p class="page-sub">Acesso direto aos painéis de cada plataforma</p></div></div>
+        <div class="hubs-grid">
+          <a class="hub-card" href="https://www.mercadolivre.com.br/vendas" target="_blank">
+            <div class="hub-icon" style="background:#FFE600;color:#000">ML</div>
+            <div class="hub-info"><div class="hub-name">Mercado Livre</div><div class="hub-sub">Central de vendas e pedidos</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://seller.shopee.com.br" target="_blank">
+            <div class="hub-icon" style="background:#EE4D2D;color:#fff">SP</div>
+            <div class="hub-info"><div class="hub-name">Shopee Central</div><div class="hub-sub">Painel do vendedor Shopee</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://seller-br.tiktok.com" target="_blank">
+            <div class="hub-icon" style="background:#111;color:#00c87a">TT</div>
+            <div class="hub-info"><div class="hub-name">TikTok Shop</div><div class="hub-sub">Painel do vendedor TikTok</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://marketplace.magalu.com.br/seller" target="_blank">
+            <div class="hub-icon" style="background:#0086FF;color:#fff">MG</div>
+            <div class="hub-info"><div class="hub-name">Magalu Marketplace</div><div class="hub-sub">Painel do vendedor Magalu</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://www.bling.com.br" target="_blank">
+            <div class="hub-icon" style="background:#6C5CE7;color:#fff">BL</div>
+            <div class="hub-info"><div class="hub-name">Bling ERP</div><div class="hub-sub">Gestão de estoque e pedidos</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://app.nuvemshop.com.br" target="_blank">
+            <div class="hub-icon" style="background:#00CFAD;color:#000">NS</div>
+            <div class="hub-info"><div class="hub-name">Nuvemshop</div><div class="hub-sub">Sua loja virtual própria</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://seller.amazon.com.br" target="_blank">
+            <div class="hub-icon" style="background:#FF9900;color:#000">AZ</div>
+            <div class="hub-info"><div class="hub-name">Amazon Seller</div><div class="hub-sub">Painel do vendedor Amazon</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://tiny.com.br" target="_blank">
+            <div class="hub-icon" style="background:#00B2A9;color:#fff">TY</div>
+            <div class="hub-info"><div class="hub-name">Tiny ERP</div><div class="hub-sub">Gestão integrada de vendas</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+          <a class="hub-card" href="https://app.olist.com" target="_blank">
+            <div class="hub-icon" style="background:#FF6900;color:#fff">OL</div>
+            <div class="hub-info"><div class="hub-name">Olist</div><div class="hub-sub">Venda em vários marketplaces</div></div>
+            <span class="hub-arrow">→</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ══ CONFIG ══ -->
+      <div class="page" id="page-config">
+        <div class="page-header"><div><h2>Configurações</h2><p class="page-sub">Taxas padrão e preferências</p></div></div>
+        <div class="config-layout">
+          <div class="card">
+            <div class="card-label">💳 Taxas da Maquininha (Venda Direta)</div>
+            <p class="config-hint">Estas taxas entram no cálculo do preço de venda — configure conforme sua maquininha.</p>
+            <div class="field-row">
+              <div class="field"><label>Débito (%)</label><input type="number" id="cfg-debito" value="1.5" step="0.1"/></div>
+              <div class="field"><label>Crédito 1x (%)</label><input type="number" id="cfg-cred1" value="2.5" step="0.1"/></div>
+              <div class="field"><label>Crédito 2x (%)</label><input type="number" id="cfg-cred2" value="3.5" step="0.1"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Crédito 3x (%)</label><input type="number" id="cfg-cred3" value="4.2" step="0.1"/></div>
+              <div class="field"><label>Crédito 4x (%)</label><input type="number" id="cfg-cred4" value="5.0" step="0.1"/></div>
+              <div class="field"><label>Crédito 6x (%)</label><input type="number" id="cfg-cred6" value="6.5" step="0.1"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Crédito 10x (%)</label><input type="number" id="cfg-cred10" value="9.5" step="0.1"/></div>
+              <div class="field"><label>Crédito 12x (%)</label><input type="number" id="cfg-cred12" value="11.0" step="0.1"/></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">📋 Padrões Gerais</div>
+            <div class="field-row">
+              <div class="field"><label>TikTok — Taxa (%)</label><input type="number" id="cfg-tt-taxa" value="6" step="0.5"/></div>
+              <div class="field"><label>TikTok — Afiliado (%)</label><input type="number" id="cfg-tt-afil" value="5" step="0.5"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Insumos padrão (%)</label><input type="number" id="cfg-insumos" value="3" step="0.5"/></div>
+              <div class="field"><label>Nota Fiscal padrão (%)</label><input type="number" id="cfg-nf" value="8" step="0.5"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Tarifa energia (R$/kWh)</label><input type="number" id="cfg-kwh" value="0.90" step="0.01"/></div>
+              <div class="field"><label>Mão de obra 3D (R$/h)</label><input type="number" id="cfg-mao" value="35" step="1"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Meta 1 (%)</label><input type="number" id="cfg-l1" value="5" step="1"/></div>
+              <div class="field"><label>Meta 2 (%)</label><input type="number" id="cfg-l2" value="10" step="1"/></div>
+              <div class="field"><label>Meta 3 (%)</label><input type="number" id="cfg-l3" value="15" step="1"/></div>
+              <div class="field"><label>Meta 4 (%)</label><input type="number" id="cfg-l4" value="20" step="1"/></div>
+            </div>
+            <div class="field"><label>Margem mínima de alerta (%)</label><input type="number" id="cfg-margem-min" value="10" step="1"/></div>
+          </div>
+          <button class="btn-primary" onclick="saveConfig()">Salvar Configurações</button>
+          <p id="config-msg" style="font-size:13px;color:var(--green);margin-top:8px;height:20px"></p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL COMPARAÇÃO -->
+<div id="modal-compare" class="modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Comparar Produtos</h3>
+      <button onclick="document.getElementById('modal-compare').style.display='none'">✕</button>
+    </div>
+    <div id="modal-compare-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
