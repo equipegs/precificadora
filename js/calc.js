@@ -388,3 +388,48 @@ function exportarPDF(){
   const nome=document.getElementById('f-nome').value||'Produto';
   window.print();
 }
+
+// ── MARGEM ATUAL ──────────────────────────────
+function calcularMargemAtual(){
+  const custo = getCusto().total;
+  const pb = getPBase();
+  const margemMin = parseFloat(document.getElementById('f-margem-min').value)||10;
+  const box = document.getElementById('box-margens-atuais');
+  if(!custo){box.style.display='none';return;}
+
+  const mps = [
+    {id:'ml',    label:'Mercado Livre', preco: parseFloat(document.getElementById('f-preco-ml').value)||0,
+      getTaxa: (v)=>{ const t=(parseFloat(document.getElementById('ml-taxa').value)||0)/100; const op=mlCustoOp(parseFloat(document.getElementById('f-peso').value)||0.3,v); return v*t+op; }},
+    {id:'shopee',label:'Shopee',        preco: parseFloat(document.getElementById('f-preco-shopee').value)||0,
+      getTaxa: (v)=>{ const f=shopeeFaixa(v); return v*f.pct+f.fixo; }},
+    {id:'tiktok',label:'TikTok Shop',   preco: parseFloat(document.getElementById('f-preco-tiktok').value)||0,
+      getTaxa: (v)=>{ const tt=(parseFloat(document.getElementById('tt-taxa').value)||0)/100; const ta=(parseFloat(document.getElementById('tt-afil').value)||0)/100; return v*(tt+ta); }},
+    {id:'magalu',label:'Magalu',        preco: parseFloat(document.getElementById('f-preco-magalu').value)||0,
+      getTaxa: (v)=>v*0.148+5},
+    {id:'direta',label:'Venda Direta',  preco: parseFloat(document.getElementById('f-preco-direta').value)||0,
+      getTaxa: (v)=>{ const tm=getTaxaMaquininha(document.getElementById('vd-pagamento').value); return v*tm; }},
+  ].filter(m=>m.preco>0);
+
+  if(!mps.length){box.style.display='none';return;}
+  box.style.display='block';
+
+  let html='<div class="margens-atuais">';
+  html+='<div class="margens-title">📊 Margem real nos seus preços atuais</div>';
+  mps.forEach(m=>{
+    const v=m.preco;
+    const taxaRS=m.getTaxa(v);
+    const despRS=v*pb.total;
+    const lucroRS=v-custo-taxaRS-despRS;
+    const lucroP=(lucroRS/v)*100;
+    const abaixo=lucroP<margemMin;
+    const cor=lucroP<0?'var(--red)':abaixo?'var(--yellow)':'var(--green)';
+    html+=`<div class="margem-row ${abaixo?'margem-warn':''}">
+      <span class="margem-mp">${m.label}</span>
+      <span class="margem-preco">${fmt(v)}</span>
+      <span class="margem-lucro" style="color:${cor}">${lucroP.toFixed(1)}% · ${fmt(lucroRS)}</span>
+      ${abaixo?'<span class="margem-alert">⚠️</span>':'<span class="margem-ok">✓</span>'}
+    </div>`;
+  });
+  html+='</div>';
+  box.innerHTML=html;
+}
