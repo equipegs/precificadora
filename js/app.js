@@ -6,6 +6,126 @@ let currentUser = null;
 let db = null;
 let compareList = [];
 
+// ── ACCESS CONTROL ───────────────────────────
+const TRIAL_DAYS = 10;
+const PRICE_MONTHLY = 19.90;
+// Cupons: adicione/remova no Firebase em /coupons/{CODIGO}
+// Cada documento: { type: 'lifetime' | 'trial', days: 30, active: true }
+
+async function checkAccess(user){
+  if(!db) return false;
+  try{
+    // 1. Verifica acesso no Firestore do usuário
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    const data = userDoc.exists ? userDoc.data() : {};
+
+    // Acesso vitalício por cupom
+    if(data.access === 'lifetime') return true;
+
+    // Assinatura ativa via Stripe
+    if(data.stripeStatus === 'active') return true;
+
+    // Período de teste
+    if(data.trialStart){
+      const start = data.trialStart.toDate ? data.trialStart.toDate() : new Date(data.trialStart);
+      const diff = (new Date() - start) / (1000*60*60*24);
+      if(diff < TRIAL_DAYS) return true;
+    } else {
+      // Primeiro acesso — inicia trial
+      await db.collection('users').doc(user.uid).set({
+        trialStart: new Date(),
+        email: user.email,
+        displayName: user.displayName,
+        createdAt: new Date()
+      }, {merge:true});
+      return true;
+    }
+    return false;
+  } catch(e){ console.error(e); return false; }
+}
+
+async function getTrialDaysLeft(user){
+  try{
+    const doc = await db.collection('users').doc(user.uid).get();
+    const data = doc.exists ? doc.data() : {};
+    if(!data.trialStart) return TRIAL_DAYS;
+    const start = data.trialStart.toDate ? data.trialStart.toDate() : new Date(data.trialStart);
+    const diff = (new Date() - start) / (1000*60*60*24);
+    return Math.max(0, Math.ceil(TRIAL_DAYS - diff));
+  } catch(e){ return 0; }
+}
+
+async function aplicarCupom(){
+  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+  const msg = document.getElementById('coupon-msg');
+  if(!code){ msg.style.color='var(--red)'; msg.textContent='Digite um cupom.'; return; }
+  msg.style.color='var(--text2)'; msg.textContent='Verificando...';
+  try{
+    const doc = await db.collection('coupons').doc(code).get();
+    if(!doc.exists || !doc.data().active){
+      msg.style.color='var(--red)'; msg.textContent='Cupom inválido ou expirado.'; return;
+    }
+    const coupon = doc.data();
+    const update = {};
+    if(coupon.type === 'lifetime'){
+      update.access = 'lifetime';
+      update.couponUsed = code;
+      msg.style.color='var(--green)'; msg.textContent='✓ Acesso vitalício liberado!';
+    } else if(coupon.type === 'trial'){
+      const days = coupon.days || 30;
+      const newStart = new Date(new Date() - (TRIAL_DAYS - days)*24*60*60*1000);
+      update.trialStart = newStart;
+      update.couponUsed = code;
+      msg.style.color='var(--green)'; msg.textContent='✓ '+days+' dias grátis ativados!';
+    }
+    await db.collection('users').doc(currentUser.uid).set(update, {merge:true});
+    // Marca cupom como usado (opcional — remova se quiser reutilizável)
+    // await db.collection('coupons').doc(code).set({usedBy: currentUser.uid}, {merge:true});
+    setTimeout(()=>iniciarApp(), 1200);
+  } catch(e){ msg.style.color='var(--red)'; msg.textContent='Erro: '+e.message; }
+}
+
+function irParaStripe(){
+  // Substitua pela URL do seu Payment Link do Stripe
+  // Crie em: dashboard.stripe.com → Payment Links → + Create
+  // Adicione ?client_reference_id=UID para identificar o usuário
+  const stripeUrl = 'https://buy.stripe.com/28E00l6DO3F6b1E31q2ZO00';
+  window.open(stripeUrl + '?client_reference_id=' + (currentUser ? currentUser.uid : ''), '_blank');
+  showToast('Você será redirecionado ao pagamento seguro', 'success');
+}
+
+function mostrarPaywall(daysLeft){
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-paywall').classList.add('active');
+  if(daysLeft === 0){
+    const title = document.querySelector('#paywall-content .auth-sub');
+    if(title) title.textContent = 'Seu período de teste encerrou — assine para continuar';
+  }
+}
+
+async function iniciarApp(){
+  db = firebase.firestore();
+  const hasAccess = await checkAccess(currentUser);
+  if(hasAccess){
+    const daysLeft = await getTrialDaysLeft(currentUser);
+    document.getElementById('screen-auth').classList.remove('active');
+    document.getElementById('screen-paywall').classList.remove('active');
+    document.getElementById('screen-app').classList.add('active');
+    document.getElementById('user-info').textContent = currentUser.displayName || currentUser.email;
+    document.getElementById('user-avatar').textContent = currentUser.displayName ? currentUser.displayName.split(' ')[0] : '👤';
+    // Mostra dias restantes no trial
+    if(daysLeft > 0 && daysLeft <= TRIAL_DAYS){
+      const el = document.getElementById('user-info');
+      el.textContent = (currentUser.displayName || currentUser.email) + ' · ' + daysLeft + 'd trial';
+    }
+    showPage('dashboard');
+    loadDashboard();
+  } else {
+    mostrarPaywall(0);
+  }
+}
+
 // ── AUTH ──────────────────────────────────────
 function loginGoogle(){
   const p=new firebase.auth.GoogleAuthProvider();
@@ -36,6 +156,14 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 function getFormData(){
   return{
     nome:document.getElementById('f-nome').value.trim()||'Produto sem nome',
+    sku:document.getElementById('f-sku').value.trim()||'',
+    ean:document.getElementById('f-ean').value.trim()||'',
+    fornecedor:document.getElementById('f-fornecedor').value.trim()||'',
+    preco_ml:parseFloat(document.getElementById('f-preco-ml').value)||0,
+    preco_shopee:parseFloat(document.getElementById('f-preco-shopee').value)||0,
+    preco_tiktok:parseFloat(document.getElementById('f-preco-tiktok').value)||0,
+    preco_magalu:parseFloat(document.getElementById('f-preco-magalu').value)||0,
+    preco_direta:parseFloat(document.getElementById('f-preco-direta').value)||0,
     modo,
     custo:parseFloat(document.getElementById('f-custo').value)||0,
     embalagem:parseFloat(document.getElementById('f-embalagem').value)||0,
@@ -85,7 +213,10 @@ async function carregarProduto(id){
     if(!doc.exists)return;
     const d=doc.data();
     const fields=[
-      ['f-nome','nome',''],['f-custo','custo',0],['f-embalagem','embalagem',0],
+      ['f-nome','nome',''],['f-sku','sku',''],['f-ean','ean',''],['f-fornecedor','fornecedor',''],
+      ['f-preco-ml','preco_ml',0],['f-preco-shopee','preco_shopee',0],
+      ['f-preco-tiktok','preco_tiktok',0],['f-preco-magalu','preco_magalu',0],['f-preco-direta','preco_direta',0],
+      ['f-custo','custo',0],['f-embalagem','embalagem',0],
       ['f-comp','comp',0],['f-alt','alt',0],['f-larg','larg',0],
       ['f-peso','peso',0.3],['f-categoria','categoria',''],
       ['f-gramas','gramas',0],['f-custo-fil','custo_fil',0],
@@ -285,21 +416,31 @@ async function loadDashboard(){
         </div>
       </div>`).join('');
 
-    // Alertas
-    const margemMinGlobal=10;
-    const alertas=produtos.filter(p=>{
+    // Alertas baseados nos precos reais praticados
+    const alertasCard=document.getElementById('dash-alertas-card');
+    const alertas=[];
+    produtos.forEach(p=>{
       const pb=((p.insumos||0)+(p.nf||0)+(p.frete||0))/100;
       const custo=(p.custo||0)+(p.embalagem||0);
-      const vml=calcVendaML(custo,pb,p.margem_min||10,(p.ml_taxa||14)/100,p.peso||0.3);
-      return vml&&vml*(( p.margem_min||10)/100)<(p.custo||0)*0.05;
+      const min=p.margem_min||10;
+      const precos=[
+        {mp:'Mercado Livre',preco:p.preco_ml||0,getTaxa:function(v){return v*(p.ml_taxa||14)/100+mlCustoOp(p.peso||0.3,v);}},
+        {mp:'Shopee',preco:p.preco_shopee||0,getTaxa:function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;}},
+        {mp:'TikTok',preco:p.preco_tiktok||0,getTaxa:function(v){return v*((p.tt_taxa||6)+(p.tt_afil||5))/100;}},
+        {mp:'Magalu',preco:p.preco_magalu||0,getTaxa:function(v){return v*0.148+5;}},
+        {mp:'Venda Direta',preco:p.preco_direta||0,getTaxa:function(){return 0;}},
+      ].filter(function(x){return x.preco>0;});
+      precos.forEach(function(m){
+        var lucroRS=m.preco-custo-m.getTaxa(m.preco)-m.preco*pb;
+        var lucroP=(lucroRS/m.preco)*100;
+        if(lucroP<min) alertas.push({nome:p.nome,mp:m.mp,preco:m.preco,lucroP:lucroP,id:p.id});
+      });
     });
-    const alertasCard=document.getElementById('dash-alertas-card');
     if(alertas.length){
       alertasCard.style.display='block';
-      document.getElementById('dash-alertas').innerHTML=alertas.map(p=>`
-        <div class="alert-row">⚠️ <strong>${p.nome}</strong> — margem pode estar abaixo do mínimo
-          <button class="btn-icon" style="margin-left:auto" onclick="carregarProduto('${p.id}')">Ver</button>
-        </div>`).join('');
+      document.getElementById('dash-alertas').innerHTML=alertas.map(function(a){
+        return '<div class="alert-row">⚠️ <strong>'+a.nome+'</strong> no '+a.mp+': '+fmt(a.preco)+' · margem '+a.lucroP.toFixed(1)+'%<button class="btn-icon" style="margin-left:auto" onclick="carregarProduto(\'' +a.id+ '\')">Ver</button></div>';
+      }).join('');
     }else{alertasCard.style.display='none';}
   }catch(e){console.error(e);}
 }
@@ -376,17 +517,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   firebase.auth().onAuthStateChanged(user=>{
     currentUser=user;
     if(user){
-      db=firebase.firestore();
-      document.getElementById('screen-auth').classList.remove('active');
-      document.getElementById('screen-app').classList.add('active');
-      document.getElementById('user-info').textContent=user.displayName||user.email;
-      document.getElementById('user-avatar').textContent=
-        user.displayName?user.displayName.split(' ')[0]:'👤';
-      showPage('dashboard');
-      loadDashboard();
+      await iniciarApp();
     }else{
       document.getElementById('screen-auth').classList.add('active');
       document.getElementById('screen-app').classList.remove('active');
+      document.getElementById('screen-paywall').classList.remove('active');
     }
   });
 });
