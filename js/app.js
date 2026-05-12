@@ -514,10 +514,10 @@ function showToast(msg,type='success'){
 // ── INIT ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   loadConfig();
-  firebase.auth().onAuthStateChanged(user=>{
+  firebase.auth().onAuthStateChanged(function(user){
     currentUser=user;
     if(user){
-      await iniciarApp();
+      iniciarApp();
     }else{
       document.getElementById('screen-auth').classList.add('active');
       document.getElementById('screen-app').classList.remove('active');
