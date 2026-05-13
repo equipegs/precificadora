@@ -595,14 +595,14 @@ function showLegal(type){
       <p>Estes termos são regidos pelas leis brasileiras. Fica eleito o foro da comarca do operador para dirimir quaisquer controvérsias.</p>
 
       <h4>11. Contato</h4>
-      <p>Dúvidas sobre estes termos: <strong>contato@margify.com.br</strong></p>`;
+      <p>Dúvidas sobre estes termos: <strong>suporte.margify@gmail.com</strong></p>`;
   } else {
     title.textContent = 'Política de Privacidade — Margify';
     body.innerHTML = `
       <p class="legal-date">Última atualização: ${new Date().toLocaleDateString('pt-BR')} · Em conformidade com a LGPD (Lei 13.709/2018)</p>
 
       <h4>1. Responsável pelo Tratamento</h4>
-      <p>Os dados coletados pela Margify são tratados por pessoa física, operador da plataforma Margify, com contato disponível em <strong>contato@margify.com.br</strong>.</p>
+      <p>Os dados coletados pela Margify são tratados por pessoa física, operador da plataforma Margify, com contato disponível em <strong>suporte.margify@gmail.com</strong>.</p>
 
       <h4>2. Dados que Coletamos</h4>
       <ul>
@@ -637,7 +637,7 @@ function showLegal(type){
         <li><strong>Portabilidade:</strong> receber seus dados em formato estruturado</li>
         <li><strong>Revogação:</strong> retirar seu consentimento a qualquer momento</li>
       </ul>
-      <p>Para exercer qualquer direito: <strong>contato@margify.com.br</strong> — respondemos em até 15 dias úteis.</p>
+      <p>Para exercer qualquer direito: <strong>suporte.margify@gmail.com</strong> — respondemos em até 15 dias úteis.</p>
 
       <h4>6. Segurança</h4>
       <p>Seus dados são armazenados no Google Firebase com criptografia em trânsito (TLS) e em repouso. As regras de segurança garantem que cada usuário acessa apenas seus próprios dados.</p>
@@ -649,7 +649,7 @@ function showLegal(type){
       <p>Utilizamos apenas cookies essenciais para autenticação (Google Firebase Auth). Não utilizamos cookies de rastreamento ou publicidade.</p>
 
       <h4>9. Contato e DPO</h4>
-      <p>Para questões de privacidade e proteção de dados: <strong>contato@margify.com.br</strong></p>`;
+      <p>Para questões de privacidade e proteção de dados: <strong>suporte.margify@gmail.com</strong></p>`;
   }
   modal.style.display = 'flex';
 }
@@ -665,4 +665,3 @@ async function registrarAceiteTermos(user){
     },{merge:true});
   }catch(e){ console.error('Erro ao registrar aceite:', e); }
 }
-
