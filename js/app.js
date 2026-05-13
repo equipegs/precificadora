@@ -128,8 +128,16 @@ async function iniciarApp(){
 
 // ── AUTH ──────────────────────────────────────
 function loginGoogle(){
+  const cb = document.getElementById('terms-accept');
+  if(cb && !cb.checked){
+    const err = document.getElementById('terms-error');
+    if(err) err.style.display='block';
+    return;
+  }
   const p=new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(p).catch(e=>showToast('Erro no login: '+e.message,'error'));
+  firebase.auth().signInWithPopup(p).then(function(result){
+    if(result.user) registrarAceiteTermos(result.user);
+  }).catch(function(e){ showToast('Erro no login: '+e.message,'error'); });
 }
 function logout(){firebase.auth().signOut();}
 
@@ -467,7 +475,7 @@ async function saveConfig(){
       cred12:document.getElementById('cfg-cred12').value,
     }
   };
-  localStorage.setItem('pf_config_v2',JSON.stringify(cfg));
+  localStorage.setItem('mgf_config_v1',JSON.stringify(cfg));
   if(currentUser&&db){
     try{await db.collection('users').doc(currentUser.uid).set({config:cfg},{merge:true});}catch(e){}
   }
@@ -500,7 +508,7 @@ function applyConfig(cfg){
 }
 
 function loadConfig(){
-  const saved=localStorage.getItem('pf_config_v2');
+  const saved=localStorage.getItem('mgf_config_v1');
   if(saved){try{applyConfig(JSON.parse(saved));}catch(e){}}
 }
 
@@ -525,3 +533,136 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 });
+
+// ── TERMOS E LEGAL ────────────────────────────
+function toggleLoginBtn(){
+  const checked = document.getElementById('terms-accept').checked;
+  const btn = document.getElementById('btn-google-login');
+  if(btn){
+    btn.style.opacity = checked ? '1' : '0.5';
+    btn.style.pointerEvents = checked ? 'auto' : 'none';
+  }
+}
+
+function showLegal(type){
+  const modal = document.getElementById('modal-legal');
+  const title = document.getElementById('legal-title');
+  const body  = document.getElementById('legal-body');
+  if(!modal) return;
+
+  if(type === 'terms'){
+    title.textContent = 'Termos de Uso — Margify';
+    body.innerHTML = `
+      <p class="legal-date">Última atualização: ${new Date().toLocaleDateString('pt-BR')}</p>
+
+      <h4>1. Sobre a Margify</h4>
+      <p>A Margify é uma ferramenta de precificação para vendedores de marketplaces (Mercado Livre, Shopee, TikTok Shop, Magalu e outros). O serviço é operado por pessoa física, doravante denominado "Margify" ou "nós".</p>
+
+      <h4>2. Aceitação dos Termos</h4>
+      <p>Ao criar uma conta e utilizar a Margify, você declara ter lido, compreendido e concordado com estes Termos de Uso. Caso não concorde, não utilize o serviço.</p>
+
+      <h4>3. Natureza do Serviço</h4>
+      <p>A Margify fornece <strong>estimativas e cálculos orientativos</strong> de precificação. Os resultados apresentados são baseados nas informações inseridas pelo usuário e nas taxas conhecidas dos marketplaces, podendo não refletir com exatidão todas as variáveis envolvidas em cada venda.</p>
+      <p><strong>A Margify não é uma consultoria financeira, contábil ou jurídica.</strong> As decisões de precificação são de responsabilidade exclusiva do usuário.</p>
+
+      <h4>4. Limitação de Responsabilidade</h4>
+      <p>A Margify não se responsabiliza por:</p>
+      <ul>
+        <li>Prejuízos decorrentes de precificações incorretas realizadas pelo usuário</li>
+        <li>Mudanças nas taxas dos marketplaces não refletidas imediatamente na plataforma</li>
+        <li>Interrupções temporárias do serviço por manutenção ou falhas técnicas</li>
+        <li>Decisões comerciais tomadas com base nos cálculos da plataforma</li>
+      </ul>
+
+      <h4>5. Conta e Acesso</h4>
+      <p>O acesso é feito via conta Google. Você é responsável pela segurança da sua conta. Cada conta é pessoal e intransferível.</p>
+
+      <h4>6. Assinatura e Pagamento</h4>
+      <p>O plano pago custa R$ 19,90/mês, cobrado mensalmente via cartão de crédito. O período de teste gratuito é de 2 (dois) dias a partir do primeiro acesso. Após o período de teste, o acesso requer assinatura ativa.</p>
+
+      <h4>7. Cancelamento e Reembolso</h4>
+      <p><strong>Direito de arrependimento:</strong> nos primeiros 7 (sete) dias corridos após a primeira cobrança, você tem direito a reembolso total, conforme o Art. 49 do Código de Defesa do Consumidor.</p>
+      <p><strong>Após 7 dias:</strong> o cancelamento encerra as cobranças futuras. O acesso permanece ativo até o fim do período já pago. Não há reembolso proporcional após esse prazo.</p>
+      <p>Para cancelar, basta cancelar a assinatura diretamente pelo painel do Stripe ou entrar em contato conosco.</p>
+
+      <h4>8. Propriedade Intelectual</h4>
+      <p>Todo o conteúdo da plataforma (código, design, textos, marca Margify) é propriedade do operador. É proibida a reprodução ou comercialização sem autorização.</p>
+
+      <h4>9. Modificações</h4>
+      <p>Podemos atualizar estes termos a qualquer momento. Usuários serão notificados por e-mail ou aviso na plataforma. O uso continuado após a notificação implica aceitação.</p>
+
+      <h4>10. Legislação Aplicável</h4>
+      <p>Estes termos são regidos pelas leis brasileiras. Fica eleito o foro da comarca do operador para dirimir quaisquer controvérsias.</p>
+
+      <h4>11. Contato</h4>
+      <p>Dúvidas sobre estes termos: <strong>contato@margify.com.br</strong></p>`;
+  } else {
+    title.textContent = 'Política de Privacidade — Margify';
+    body.innerHTML = `
+      <p class="legal-date">Última atualização: ${new Date().toLocaleDateString('pt-BR')} · Em conformidade com a LGPD (Lei 13.709/2018)</p>
+
+      <h4>1. Responsável pelo Tratamento</h4>
+      <p>Os dados coletados pela Margify são tratados por pessoa física, operador da plataforma Margify, com contato disponível em <strong>contato@margify.com.br</strong>.</p>
+
+      <h4>2. Dados que Coletamos</h4>
+      <ul>
+        <li><strong>Dados de autenticação:</strong> nome e e-mail fornecidos pela sua conta Google no momento do login</li>
+        <li><strong>Dados de uso:</strong> produtos cadastrados, custos, preços e configurações que você insere na plataforma</li>
+        <li><strong>Dados de acesso:</strong> data do primeiro acesso e início do período de teste</li>
+        <li><strong>Dados de pagamento:</strong> processados exclusivamente pelo Stripe — não armazenamos dados de cartão</li>
+      </ul>
+
+      <h4>3. Para que Usamos seus Dados</h4>
+      <ul>
+        <li>Autenticar e identificar sua conta</li>
+        <li>Armazenar seus produtos e configurações na nuvem</li>
+        <li>Gerenciar seu período de teste e assinatura</li>
+        <li>Enviar comunicações sobre o serviço (apenas quando necessário)</li>
+      </ul>
+
+      <h4>4. Não Vendemos nem Compartilhamos</h4>
+      <p>Seus dados <strong>nunca são vendidos, alugados ou compartilhados com terceiros</strong> para fins comerciais. Os únicos serviços que acessam seus dados são:</p>
+      <ul>
+        <li><strong>Google Firebase</strong> — armazenamento seguro na nuvem (Google LLC)</li>
+        <li><strong>Stripe</strong> — processamento de pagamentos (Stripe Inc.)</li>
+      </ul>
+      <p>Ambos possuem certificações de segurança internacionais e políticas de privacidade próprias.</p>
+
+      <h4>5. Seus Direitos (LGPD)</h4>
+      <p>Conforme a Lei Geral de Proteção de Dados, você tem direito a:</p>
+      <ul>
+        <li><strong>Acesso:</strong> saber quais dados temos sobre você</li>
+        <li><strong>Correção:</strong> corrigir dados incorretos</li>
+        <li><strong>Exclusão:</strong> solicitar a exclusão de todos os seus dados</li>
+        <li><strong>Portabilidade:</strong> receber seus dados em formato estruturado</li>
+        <li><strong>Revogação:</strong> retirar seu consentimento a qualquer momento</li>
+      </ul>
+      <p>Para exercer qualquer direito: <strong>contato@margify.com.br</strong> — respondemos em até 15 dias úteis.</p>
+
+      <h4>6. Segurança</h4>
+      <p>Seus dados são armazenados no Google Firebase com criptografia em trânsito (TLS) e em repouso. As regras de segurança garantem que cada usuário acessa apenas seus próprios dados.</p>
+
+      <h4>7. Retenção de Dados</h4>
+      <p>Seus dados são mantidos enquanto sua conta estiver ativa. Após solicitação de exclusão, os dados são removidos em até 30 dias.</p>
+
+      <h4>8. Cookies</h4>
+      <p>Utilizamos apenas cookies essenciais para autenticação (Google Firebase Auth). Não utilizamos cookies de rastreamento ou publicidade.</p>
+
+      <h4>9. Contato e DPO</h4>
+      <p>Para questões de privacidade e proteção de dados: <strong>contato@margify.com.br</strong></p>`;
+  }
+  modal.style.display = 'flex';
+}
+
+// Registra aceite dos termos no Firebase
+async function registrarAceiteTermos(user){
+  if(!db||!user) return;
+  try{
+    await db.collection('users').doc(user.uid).set({
+      termsAcceptedAt: new Date(),
+      termsVersion: '1.0',
+      email: user.email,
+    },{merge:true});
+  }catch(e){ console.error('Erro ao registrar aceite:', e); }
+}
+
