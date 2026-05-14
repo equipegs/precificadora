@@ -704,4 +704,3 @@ async function registrarAceiteTermos(user){
     },{merge:true});
   }catch(e){ console.error('Erro ao registrar aceite:', e); }
 }
-
