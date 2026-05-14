@@ -266,40 +266,79 @@ async function loadProducts(){
   if(!currentUser||!db)return;
   const el=document.getElementById('products-list');
   el.innerHTML='<p style="color:var(--text2);font-size:13px;padding:8px">Carregando...</p>';
-  const catFiltroEl=document.getElementById('filtro-cat');const catFiltro=catFiltroEl?catFiltroEl.value:'';
+  const catFiltroEl=document.getElementById('filtro-cat');
+  const catFiltro=catFiltroEl?catFiltroEl.value:'';
+  const searchInput=document.getElementById('search-input');
+  const searchField=document.getElementById('search-field');
+  const searchTerm=(searchInput?searchInput.value.trim().toLowerCase():'');
+  const searchBy=(searchField?searchField.value:'nome');
   try{
-    let query=db.collection('users').doc(currentUser.uid).collection('produtos').orderBy('savedAt','desc');
-    const snap=await query.get();
+    const snap=await db.collection('users').doc(currentUser.uid)
+      .collection('produtos').orderBy('savedAt','desc').get();
     let docs=snap.docs;
-    if(catFiltro)docs=docs.filter(d=>d.data().categoria===catFiltro);
+    if(catFiltro) docs=docs.filter(function(d){return d.data().categoria===catFiltro;});
+    if(searchTerm) docs=docs.filter(function(d){
+      const val=(d.data()[searchBy]||'').toString().toLowerCase();
+      return val.indexOf(searchTerm)>-1;
+    });
     if(!docs.length){
-      el.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado.<br/>Faça seu primeiro cálculo!</p><button class="btn-primary" onclick="showPage('calc')" style="margin-top:16px">+ Novo Cálculo</button></div>`;
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado.</p><button class="btn-primary" onclick="showPage('calc')" style="margin-top:16px">+ Novo Cálculo</button></div>';
       return;
     }
-    el.innerHTML=docs.map(doc=>{
+    el.innerHTML=docs.map(function(doc){
       const d=doc.data();
       const data=d.savedAt?new Date(d.savedAt).toLocaleDateString('pt-BR'):'—';
       const catLabel={eletronicos:'Eletrônicos',acessorios:'Acessórios',casa:'Casa',
         moda:'Moda','3d':'3D',brinquedos:'Brinquedos',outros:'Outros'}[d.categoria]||'';
       const checked=compareList.includes(doc.id);
-      const dims=d.comp&&d.alt&&d.larg?`${d.comp}×${d.alt}×${d.larg}cm · `:'';
-      return`<div class="product-card" id="pc-${doc.id}">
-        <input type="checkbox" class="compare-check" ${checked?'checked':''} onchange="toggleCompare('${doc.id}',this.checked)" title="Selecionar para comparar"/>
-        <div class="product-icon">${d.modo==='3d'?'🖨️':'📦'}</div>
-        <div class="product-info">
-          <div class="product-name">${d.nome}
-            ${d.modo==='3d'?'<span class="product-tag tag-3d">3D</span>':''}
-            ${catLabel?`<span class="product-tag tag-cat">${catLabel}</span>`:''}
-          </div>
-          <div class="product-meta">${dims}${d.peso||''}kg · Custo: ${fmt(d.custo)} · ${data}</div>
-        </div>
-        <div class="product-actions">
-          <button class="btn-icon" onclick="carregarProduto('${doc.id}')">✏️ Carregar</button>
-          <button class="btn-icon danger" onclick="deletarProduto('${doc.id}')">✕</button>
-        </div>
-      </div>`;
+      const dims=d.comp&&d.alt&&d.larg?(d.comp+'×'+d.alt+'×'+d.larg+'cm · '):'';
+      const pb=((d.insumos||0)+(d.nf||0)+(d.frete||0))/100;
+      const custo=(d.custo||0)+(d.embalagem||0);
+
+      // Calcula margem real para cada marketplace com preço praticado
+      function margemBadge(mp,preco,getTaxa){
+        if(!preco) return '';
+        const taxaRS=getTaxa(preco);
+        const lucroRS=preco-custo-taxaRS-preco*pb;
+        const lucroP=(lucroRS/preco)*100;
+        const min=d.margem_min||10;
+        const cor=lucroP<0?'#ff4d6d':lucroP<min?'#ffd60a':'#00c87a';
+        return '<div class="pc-mp-row"><span class="pc-mp-name">'+mp+'</span>'
+          +'<span class="pc-mp-price">'+fmt(preco)+'</span>'
+          +'<span class="pc-mp-lucro" style="color:'+cor+'">'+lucroP.toFixed(1)+'% · '+fmt(lucroRS)+'</span></div>';
+      }
+      var mpRows='';
+      if(d.preco_ml)    mpRows+=margemBadge('ML',    d.preco_ml,    function(v){return v*(d.ml_taxa||14)/100+mlCustoOp(d.peso||0.3,v);});
+      if(d.preco_shopee)mpRows+=margemBadge('Shopee', d.preco_shopee,function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;});
+      if(d.preco_tiktok)mpRows+=margemBadge('TikTok', d.preco_tiktok,function(v){return v*((d.tt_taxa||6)+(d.tt_afil||5))/100;});
+      if(d.preco_magalu)mpRows+=margemBadge('Magalu', d.preco_magalu,function(v){return v*0.148+5;});
+      if(d.preco_direta)mpRows+=margemBadge('Direta', d.preco_direta,function(){return 0;});
+
+      var identInfo='';
+      if(d.sku)        identInfo+='<span class="pc-tag">SKU: '+d.sku+'</span>';
+      if(d.ean)        identInfo+='<span class="pc-tag">EAN: '+d.ean+'</span>';
+      if(d.fornecedor) identInfo+='<span class="pc-tag">'+d.fornecedor+'</span>';
+
+      return '<div class="product-card" id="pc-'+doc.id+'">'
+        +'<input type="checkbox" class="compare-check" '+(checked?'checked':'')
+        +' onchange="toggleCompare(''+doc.id+'',this.checked)" title="Selecionar para comparar"/>'
+        +'<div class="product-icon">'+(d.modo==='3d'?'🖨️':'📦')+'</div>'
+        +'<div class="product-info">'
+          +'<div class="product-name">'+d.nome
+            +(d.modo==='3d'?'<span class="product-tag tag-3d">3D</span>':'')
+            +(catLabel?'<span class="product-tag tag-cat">'+catLabel+'</span>':'')
+          +'</div>'
+          +'<div class="product-meta">'+dims+(d.peso||'')+'kg · Custo: '+fmt(d.custo)+' · '+data+'</div>'
+          +(identInfo?'<div class="pc-ident">'+identInfo+'</div>':'')
+          +(mpRows?'<div class="pc-mp-list">'+mpRows+'</div>':'')
+        +'</div>'
+        +'<div class="product-actions">'
+          +'<button class="btn-icon" onclick="carregarProduto(''+doc.id+'')">✏️ Carregar</button>'
+          +'<button class="btn-icon danger" onclick="deletarProduto(''+doc.id+'')">✕</button>'
+        +'</div>'
+      +'</div>';
     }).join('');
-  }catch(e){el.innerHTML=`<p style="color:var(--red)">Erro: ${e.message}</p>`;}
+  }catch(e){el.innerHTML='<p style="color:var(--red)">Erro: '+e.message+'</p>';}
 }
 
 // ── COMPARAR ──────────────────────────────────
