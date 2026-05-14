@@ -13,6 +13,7 @@
   <meta name="theme-color" content="#00c87a"/>
   <meta name="application-name" content="Margify"/>
   <meta name="apple-mobile-web-app-title" content="Margify"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="msapplication-TileColor" content="#00c87a"/>
@@ -77,7 +78,7 @@
       </div>
       <div class="terms-check-wrap">
         <label class="terms-check-label">
-          <input type="checkbox" id="terms-accept" onchange="toggleLoginBtn()"/>
+          <input type="checkbox" id="terms-accept" onchange="var cb=this,btn=document.getElementById('btn-google-login');if(btn){btn.style.opacity=cb.checked?'1':'0.5';btn.style.pointerEvents=cb.checked?'auto':'none';}"/>
           <span>Li e aceito os <a href="#" onclick="showLegal('terms');return false">Termos de Uso</a> e a <a href="#" onclick="showLegal('privacy');return false">Política de Privacidade</a> da Margify</span>
         </label>
         <p id="terms-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none">Você precisa aceitar os termos para continuar.</p>
@@ -590,4 +591,3 @@
 <script src="js/app.js"></script>
 </body>
 </html>
-
