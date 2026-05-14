@@ -433,4 +433,3 @@ function calcularMargemAtual(){
   html+='</div>';
   box.innerHTML=html;
 }
-
