@@ -282,61 +282,61 @@ async function loadProducts(){
       return val.indexOf(searchTerm)>-1;
     });
     if(!docs.length){
-      el.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado.</p><button class="btn-primary" onclick="showPage('calc')" style="margin-top:16px">+ Novo Cálculo</button></div>';
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado.</p><button class="btn-primary" onclick="showPage(&quot;calc&quot;)" style="margin-top:16px">+ Novo Cálculo</button></div>';
       return;
     }
     el.innerHTML=docs.map(function(doc){
-      const d=doc.data();
-      const data=d.savedAt?new Date(d.savedAt).toLocaleDateString('pt-BR'):'—';
-      const catLabel={eletronicos:'Eletrônicos',acessorios:'Acessórios',casa:'Casa',
-        moda:'Moda','3d':'3D',brinquedos:'Brinquedos',outros:'Outros'}[d.categoria]||'';
-      const checked=compareList.includes(doc.id);
-      const dims=d.comp&&d.alt&&d.larg?(d.comp+'×'+d.alt+'×'+d.larg+'cm · '):'';
-      const pb=((d.insumos||0)+(d.nf||0)+(d.frete||0))/100;
-      const custo=(d.custo||0)+(d.embalagem||0);
+      var d=doc.data();
+      var data=d.savedAt?new Date(d.savedAt).toLocaleDateString('pt-BR'):'—';
+      var catLabels={eletronicos:'Eletrônicos',acessorios:'Acessórios',casa:'Casa',
+        moda:'Moda','3d':'3D',brinquedos:'Brinquedos',outros:'Outros'};
+      var catLabel=catLabels[d.categoria]||'';
+      var checked=compareList.includes(doc.id);
+      var dims=d.comp&&d.alt&&d.larg?(d.comp+'×'+d.alt+'×'+d.larg+'cm · '):'';
+      var pb=((d.insumos||0)+(d.nf||0)+(d.frete||0))/100;
+      var custo=(d.custo||0)+(d.embalagem||0);
+      var id=doc.id;
 
-      // Calcula margem real para cada marketplace com preço praticado
       function margemBadge(mp,preco,getTaxa){
         if(!preco) return '';
-        const taxaRS=getTaxa(preco);
-        const lucroRS=preco-custo-taxaRS-preco*pb;
-        const lucroP=(lucroRS/preco)*100;
-        const min=d.margem_min||10;
-        const cor=lucroP<0?'#ff4d6d':lucroP<min?'#ffd60a':'#00c87a';
+        var taxaRS=getTaxa(preco);
+        var lucroRS=preco-custo-taxaRS-preco*pb;
+        var lucroP=(lucroRS/preco)*100;
+        var min=d.margem_min||10;
+        var cor=lucroP<0?'#ff4d6d':lucroP<min?'#ffd60a':'#00c87a';
         return '<div class="pc-mp-row"><span class="pc-mp-name">'+mp+'</span>'
           +'<span class="pc-mp-price">'+fmt(preco)+'</span>'
           +'<span class="pc-mp-lucro" style="color:'+cor+'">'+lucroP.toFixed(1)+'% · '+fmt(lucroRS)+'</span></div>';
       }
       var mpRows='';
-      if(d.preco_ml)    mpRows+=margemBadge('ML',    d.preco_ml,    function(v){return v*(d.ml_taxa||14)/100+mlCustoOp(d.peso||0.3,v);});
-      if(d.preco_shopee)mpRows+=margemBadge('Shopee', d.preco_shopee,function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;});
-      if(d.preco_tiktok)mpRows+=margemBadge('TikTok', d.preco_tiktok,function(v){return v*((d.tt_taxa||6)+(d.tt_afil||5))/100;});
-      if(d.preco_magalu)mpRows+=margemBadge('Magalu', d.preco_magalu,function(v){return v*0.148+5;});
-      if(d.preco_direta)mpRows+=margemBadge('Direta', d.preco_direta,function(){return 0;});
+      if(d.preco_ml)     mpRows+=margemBadge('ML',     d.preco_ml,     function(v){return v*(d.ml_taxa||14)/100+mlCustoOp(d.peso||0.3,v);});
+      if(d.preco_shopee) mpRows+=margemBadge('Shopee',  d.preco_shopee, function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;});
+      if(d.preco_tiktok) mpRows+=margemBadge('TikTok',  d.preco_tiktok, function(v){return v*((d.tt_taxa||6)+(d.tt_afil||5))/100;});
+      if(d.preco_magalu) mpRows+=margemBadge('Magalu',  d.preco_magalu, function(v){return v*0.148+5;});
+      if(d.preco_direta) mpRows+=margemBadge('Direta',  d.preco_direta, function(){return 0;});
 
       var identInfo='';
       if(d.sku)        identInfo+='<span class="pc-tag">SKU: '+d.sku+'</span>';
       if(d.ean)        identInfo+='<span class="pc-tag">EAN: '+d.ean+'</span>';
       if(d.fornecedor) identInfo+='<span class="pc-tag">'+d.fornecedor+'</span>';
 
-      return '<div class="product-card" id="pc-'+doc.id+'">'
-        +'<input type="checkbox" class="compare-check" '+(checked?'checked':'')
-        +' onchange="toggleCompare(''+doc.id+'',this.checked)" title="Selecionar para comparar"/>'
-        +'<div class="product-icon">'+(d.modo==='3d'?'🖨️':'📦')+'</div>'
-        +'<div class="product-info">'
-          +'<div class="product-name">'+d.nome
-            +(d.modo==='3d'?'<span class="product-tag tag-3d">3D</span>':'')
-            +(catLabel?'<span class="product-tag tag-cat">'+catLabel+'</span>':'')
-          +'</div>'
-          +'<div class="product-meta">'+dims+(d.peso||'')+'kg · Custo: '+fmt(d.custo)+' · '+data+'</div>'
-          +(identInfo?'<div class="pc-ident">'+identInfo+'</div>':'')
-          +(mpRows?'<div class="pc-mp-list">'+mpRows+'</div>':'')
-        +'</div>'
-        +'<div class="product-actions">'
-          +'<button class="btn-icon" onclick="carregarProduto(''+doc.id+'')">✏️ Carregar</button>'
-          +'<button class="btn-icon danger" onclick="deletarProduto(''+doc.id+'')">✕</button>'
-        +'</div>'
-      +'</div>';
+      var html='<div class="product-card" id="pc-'+id+'">';
+      html+='<input type="checkbox" class="compare-check" '+(checked?'checked':'')+' onchange="toggleCompare(this.dataset.id,this.checked)" data-id="'+id+'" title="Comparar"/>';
+      html+='<div class="product-icon">'+(d.modo==='3d'?'🖨️':'📦')+'</div>';
+      html+='<div class="product-info">';
+      html+='<div class="product-name">'+d.nome;
+      if(d.modo==='3d') html+='<span class="product-tag tag-3d">3D</span>';
+      if(catLabel) html+='<span class="product-tag tag-cat">'+catLabel+'</span>';
+      html+='</div>';
+      html+='<div class="product-meta">'+dims+(d.peso||'')+'kg · Custo: '+fmt(d.custo)+' · '+data+'</div>';
+      if(identInfo) html+='<div class="pc-ident">'+identInfo+'</div>';
+      if(mpRows) html+='<div class="pc-mp-list">'+mpRows+'</div>';
+      html+='</div>';
+      html+='<div class="product-actions">';
+      html+='<button class="btn-icon" data-id="'+id+'" onclick="carregarProduto(this.dataset.id)">✏️ Carregar</button>';
+      html+='<button class="btn-icon danger" data-id="'+id+'" onclick="deletarProduto(this.dataset.id)">✕</button>';
+      html+='</div></div>';
+      return html;
     }).join('');
   }catch(e){el.innerHTML='<p style="color:var(--red)">Erro: '+e.message+'</p>';}
 }
