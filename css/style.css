@@ -319,3 +319,48 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .legal-body li{color:var(--text2);}
 .legal-body strong{color:var(--text);}
 .legal-date{font-size:11px;color:var(--text3);margin-bottom:16px!important;padding:6px 10px;background:var(--bg3);border-radius:6px;display:inline-block;}
+
+/* ── LOGO SVG SIDEBAR ── */
+.logo-sm-img { width:32px; height:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.logo-sm-img svg { display:block; }
+
+/* ── SEARCH BAR ── */
+.search-bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+.search-input { flex:1; min-width:180px; padding:9px 12px; font-size:14px; border:1px solid var(--border2); border-radius:8px; background:var(--bg3); color:var(--text); font-family:var(--font); transition:border 0.15s; }
+.search-input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(0,200,122,0.1); }
+
+/* ── PRODUCT CARD RICH ── */
+.pc-ident { display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; }
+.pc-tag { padding:2px 8px; border-radius:10px; font-size:11px; background:var(--bg4); color:var(--text3); border:0.5px solid var(--border); }
+.pc-mp-list { margin-top:8px; border-top:1px solid var(--border); padding-top:8px; display:flex; flex-direction:column; gap:4px; }
+.pc-mp-row { display:flex; align-items:center; gap:8px; font-size:12px; }
+.pc-mp-name { width:52px; font-weight:600; color:var(--text2); flex-shrink:0; }
+.pc-mp-price { font-family:var(--mono); font-size:12px; min-width:80px; }
+.pc-mp-lucro { font-family:var(--mono); font-size:12px; font-weight:700; }
+
+/* ── PRINT / PDF ── */
+@media print {
+  * { -webkit-print-color-adjust:exact !important; color-adjust:exact !important; }
+  body { background:#fff !important; color:#000 !important; }
+  .sidebar, .topbar, .btn-save-product, .btn-export,
+  .btn-menu, #page-dashboard, #page-products, #page-simulator,
+  #page-hubs, #page-config, .compare-bar,
+  #screen-auth, #screen-paywall { display:none !important; }
+  .main-content { margin-left:0 !important; }
+  #page-calc { display:block !important; padding:0 !important; }
+  .calc-layout { grid-template-columns:1fr !important; }
+  .calc-left { position:static !important; }
+  .card { background:#f9f9f9 !important; border:1px solid #ddd !important; break-inside:avoid; }
+  .result-item { break-inside:avoid; }
+  .result-cascade { display:block !important; }
+  .result-price { color:#00a855 !important; }
+  .cascade-neg { color:#cc2244 !important; }
+  .cascade-pos { color:#00a855 !important; }
+  .mp-badge { -webkit-print-color-adjust:exact; }
+  /* Print header */
+  #page-calc::before {
+    content: "Margify — Ficha de Precificação";
+    display:block; font-size:20px; font-weight:800;
+    color:#00c87a; margin-bottom:16px; font-family:Arial;
+  }
+}
