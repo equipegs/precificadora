@@ -160,10 +160,12 @@
 
       <!-- ══ CALCULAR ══ -->
       <div class="page" id="page-calc">
-        <div class="calc-layout">
-          <div class="calc-left">
 
-            <div class="card">
+        <!-- ── INPUTS TOPO ── -->
+        <div class="calc-inputs-top">
+
+          <div class="calc-inputs-row">
+            <div class="card" style="flex:1;min-width:280px">
               <div class="card-label">📦 Dados do Produto</div>
               <div class="mode-toggle">
                 <button class="mode-btn active" id="mode-normal" onclick="setMode('normal')">Produto Normal</button>
@@ -202,24 +204,7 @@
               <div class="field"><label>Fornecedor</label><input type="text" id="f-fornecedor" placeholder="Ex: Fornecedor ABC Ltda"/></div>
             </div>
 
-            <!-- PREÇOS ATUAIS -->
-            <div class="card">
-              <div class="card-label">💰 Preços Praticados Hoje <span class="label-hint">opcional — preencha se já estiver anunciado</span></div>
-              <p class="config-hint" style="margin-bottom:12px">Informe o preço que você vende hoje. O sistema calcula a margem real e alerta se estiver abaixo do mínimo.</p>
-              <div class="field-row">
-                <div class="field"><label>Mercado Livre (R$)</label><input type="number" id="f-preco-ml" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
-                <div class="field"><label>Shopee (R$)</label><input type="number" id="f-preco-shopee" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
-              </div>
-              <div class="field-row">
-                <div class="field"><label>TikTok Shop (R$)</label><input type="number" id="f-preco-tiktok" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
-                <div class="field"><label>Magalu (R$)</label><input type="number" id="f-preco-magalu" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
-              </div>
-              <div class="field"><label>Venda Direta (R$)</label><input type="number" id="f-preco-direta" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
-              <div id="box-margens-atuais" style="display:none;margin-top:10px"></div>
-            </div>
-
-            <!-- 3D -->
-            <div class="card" id="card-3d" style="display:none">
+            <div class="card" id="card-3d" style="flex:1;min-width:280px;display:none">
               <div class="card-label">🖨️ Impressão 3D</div>
               <div class="field">
                 <label>Impressora (pré-configurada)</label>
@@ -249,12 +234,9 @@
                 <div class="field">
                   <label>Custo/hora (R$)</label>
                   <input type="number" id="f-mao-hora" placeholder="35,00" step="1" value="35" oninput="calcular()"/>
-                  <span class="field-hint">R$35/h = referência mercado maker SP • ajuste conforme sua especialização</span>
+                  <span class="field-hint">R$35/h = referência mercado maker SP</span>
                 </div>
-                <div class="field">
-                  <label>Tempo de trabalho (min)</label>
-                  <input type="number" id="f-mao-min" placeholder="0" step="1" value="0" oninput="calcular()"/>
-                </div>
+                <div class="field"><label>Tempo de trabalho (min)</label><input type="number" id="f-mao-min" placeholder="0" step="1" value="0" oninput="calcular()"/></div>
               </div>
               <div class="info-box" id="box-3d" style="display:none">
                 <div class="info-row"><span>Custo filamento</span><span id="v-fil" class="mono">R$ 0,00</span></div>
@@ -264,131 +246,136 @@
               </div>
             </div>
 
-            <!-- DESPESAS -->
-            <div class="card">
-              <div class="card-label">📋 Despesas Gerais <span class="label-hint">% sobre valor de venda</span></div>
+            <div class="card" style="flex:1;min-width:260px">
+              <div class="card-label">📋 Despesas Gerais <span class="label-hint">% sobre venda</span></div>
               <div class="field-row">
                 <div class="field"><label>Insumos (%)</label><input type="number" id="f-insumos" value="3" step="0.5" oninput="calcular()"/></div>
                 <div class="field"><label>Nota Fiscal (%)</label><input type="number" id="f-nf" value="8" step="0.5" oninput="calcular()"/></div>
                 <div class="field"><label>Frete (%)</label><input type="number" id="f-frete" value="0" step="0.5" oninput="calcular()"/></div>
               </div>
-            </div>
-
-            <!-- METAS -->
-            <div class="card">
-              <div class="card-label">🎯 Margem Mínima e Metas de Lucro <span class="label-hint">% sobre venda</span></div>
+              <div class="card-label" style="margin-top:16px">🎯 Margem Mínima e Metas <span class="label-hint">% sobre venda</span></div>
               <div class="field">
                 <label>⚠️ Margem mínima aceitável (%)</label>
                 <input type="number" id="f-margem-min" value="10" step="1" oninput="calcular()"/>
-                <span class="field-hint">Alertas aparecem no Dashboard quando abaixo disso</span>
+                <span class="field-hint">Alertas no Dashboard quando abaixo disso</span>
               </div>
-              <div class="field-row" style="margin-top:10px">
+              <div class="field-row" style="margin-top:8px">
                 <div class="field"><label>Meta 1 (%)</label><input type="number" id="f-l1" value="5" step="1" oninput="calcular()"/></div>
                 <div class="field"><label>Meta 2 (%)</label><input type="number" id="f-l2" value="10" step="1" oninput="calcular()"/></div>
                 <div class="field"><label>Meta 3 (%)</label><input type="number" id="f-l3" value="15" step="1" oninput="calcular()"/></div>
                 <div class="field"><label>Meta 4 (%)</label><input type="number" id="f-l4" value="20" step="1" oninput="calcular()"/></div>
               </div>
             </div>
-          </div>
 
-          <!-- RIGHT: RESULTS -->
-          <div class="calc-right">
-            <div id="alert-custo" class="alert-box">Preencha o custo do produto para ver os resultados.</div>
-
-            <!-- ML -->
-            <div class="card mp-card">
-              <div class="mp-header-row">
-                <div class="mp-badge" style="background:#FFE600;color:#000">ML</div>
-                <span class="mp-name">Mercado Livre</span>
+            <div class="card" style="flex:1;min-width:260px">
+              <div class="card-label">💰 Preços Praticados Hoje <span class="label-hint">opcional</span></div>
+              <p class="config-hint" style="margin-bottom:12px">Informe o preço atual em cada marketplace para ver a margem real.</p>
+              <div class="field-row">
+                <div class="field"><label>Mercado Livre (R$)</label><input type="number" id="f-preco-ml" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+                <div class="field"><label>Shopee (R$)</label><input type="number" id="f-preco-shopee" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
               </div>
               <div class="field-row">
-                <div class="field">
-                  <label>Tipo de anúncio</label>
-                  <select id="ml-tipo" onchange="mlTipoChanged()">
-                    <option value="classico">Clássico</option>
-                    <option value="premium">Premium</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Taxa (%)</label>
-                  <input type="number" id="ml-taxa" value="14" step="0.5" oninput="calcular()"/>
-                </div>
-                <div class="field">
-                  <label>Envio</label>
-                  <select id="ml-envio" onchange="calcular()">
-                    <option value="proprio">Próprio</option>
-                    <option value="full">Full ML</option>
-                  </select>
-                </div>
+                <div class="field"><label>TikTok Shop (R$)</label><input type="number" id="f-preco-tiktok" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+                <div class="field"><label>Magalu (R$)</label><input type="number" id="f-preco-magalu" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
               </div>
-              <div id="ml-custo-op" class="info-mini"></div>
-              <div id="ml-results" class="mp-results"></div>
+              <div class="field"><label>Venda Direta (R$)</label><input type="number" id="f-preco-direta" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              <div id="box-margens-atuais" style="display:none;margin-top:10px"></div>
             </div>
+          </div>
 
-            <!-- SHOPEE -->
-            <div class="card mp-card">
-              <div class="mp-header-row">
-                <div class="mp-badge" style="background:#EE4D2D;color:#fff">SP</div>
-                <span class="mp-name">Shopee</span>
-                <span class="badge-tag" style="background:rgba(238,77,45,0.15);color:#ee4d2d">Escalonada</span>
-              </div>
-              <div id="shopee-results" class="mp-results"></div>
+          <div id="alert-custo" class="alert-box">Preencha o custo do produto para ver os resultados.</div>
+        </div>
+
+        <!-- ── RESULTADOS MARKETPLACES ── -->
+        <div class="calc-mp-grid" id="calc-mp-grid">
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#FFE600;color:#000">ML</div>
+              <span class="mp-name">Mercado Livre</span>
             </div>
-
-            <!-- TIKTOK -->
-            <div class="card mp-card">
-              <div class="mp-header-row">
-                <div class="mp-badge" style="background:#111;color:#00c87a">TT</div>
-                <span class="mp-name">TikTok Shop</span>
-              </div>
-              <div class="field-row" style="margin-bottom:10px">
-                <div class="field"><label>Taxa (%)</label><input type="number" id="tt-taxa" value="6" step="0.5" oninput="calcular()"/></div>
-                <div class="field"><label>Afiliado (%)</label><input type="number" id="tt-afil" value="5" step="0.5" oninput="calcular()"/></div>
-              </div>
-              <div id="tiktok-results" class="mp-results"></div>
-            </div>
-
-            <!-- MAGALU -->
-            <div class="card mp-card">
-              <div class="mp-header-row">
-                <div class="mp-badge" style="background:#0086FF;color:#fff">MG</div>
-                <span class="mp-name">Magalu</span>
-                <span class="label-hint" style="margin-left:auto;font-size:11px">14,8% + R$5,00 fixo</span>
-              </div>
-              <div id="magalu-results" class="mp-results"></div>
-            </div>
-
-            <!-- VENDA DIRETA -->
-            <div class="card mp-card">
-              <div class="mp-header-row">
-                <div class="mp-badge" style="background:#00c87a;color:#000">VD</div>
-                <span class="mp-name">Venda Direta</span>
-              </div>
-              <div class="field">
-                <label>Forma de pagamento</label>
-                <select id="vd-pagamento" onchange="calcular()">
-                  <option value="outros">Outros / Dinheiro / Pix (sem taxa)</option>
-                  <option value="debito">Débito</option>
-                  <option value="credito1">Crédito à vista (1x)</option>
-                  <option value="credito2">Crédito 2x</option>
-                  <option value="credito3">Crédito 3x</option>
-                  <option value="credito4">Crédito 4x</option>
-                  <option value="credito6">Crédito 6x</option>
-                  <option value="credito10">Crédito 10x</option>
-                  <option value="credito12">Crédito 12x</option>
+            <div class="field-row">
+              <div class="field"><label>Tipo de anúncio</label>
+                <select id="ml-tipo" onchange="mlTipoChanged()">
+                  <option value="classico">Clássico</option>
+                  <option value="premium">Premium</option>
                 </select>
               </div>
-              <div id="vd-taxa-info" class="info-mini" style="margin-top:6px"></div>
-              <div id="direta-results" class="mp-results"></div>
+              <div class="field"><label>Taxa (%)</label><input type="number" id="ml-taxa" value="14" step="0.5" oninput="calcular()"/></div>
+              <div class="field"><label>Envio</label>
+                <select id="ml-envio" onchange="calcular()">
+                  <option value="proprio">Próprio</option>
+                  <option value="full">Full ML</option>
+                </select>
+              </div>
             </div>
-
-            <button class="btn-save-product" id="btn-salvar" onclick="salvarProduto()" style="display:none">💾 Salvar Produto</button>
-            <button class="btn-export" id="btn-export" onclick="exportarPDF()" style="display:none">📄 Exportar PDF</button>
+            <div id="ml-custo-op" class="info-mini"></div>
+            <div id="ml-results" class="mp-results"></div>
           </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#EE4D2D;color:#fff">SP</div>
+              <span class="mp-name">Shopee</span>
+              <span class="badge-tag" style="background:rgba(238,77,45,0.15);color:#ee4d2d">Escalonada</span>
+            </div>
+            <div id="shopee-results" class="mp-results"></div>
+          </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#111;color:#00c87a">TT</div>
+              <span class="mp-name">TikTok Shop</span>
+            </div>
+            <div class="field-row" style="margin-bottom:10px">
+              <div class="field"><label>Taxa (%)</label><input type="number" id="tt-taxa" value="6" step="0.5" oninput="calcular()"/></div>
+              <div class="field"><label>Afiliado (%)</label><input type="number" id="tt-afil" value="5" step="0.5" oninput="calcular()"/></div>
+            </div>
+            <div id="tiktok-results" class="mp-results"></div>
+          </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#0086FF;color:#fff">MG</div>
+              <span class="mp-name">Magalu</span>
+              <span class="label-hint" style="margin-left:auto;font-size:11px">14,8% + R$5,00 fixo</span>
+            </div>
+            <div id="magalu-results" class="mp-results"></div>
+          </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#00c87a;color:#000">VD</div>
+              <span class="mp-name">Venda Direta</span>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Forma de pagamento</label>
+              <select id="vd-pagamento" onchange="calcular()">
+                <option value="outros">Outros / Dinheiro / Pix (sem taxa)</option>
+                <option value="debito">Débito</option>
+                <option value="credito1">Crédito à vista (1x)</option>
+                <option value="credito2">Crédito 2x</option>
+                <option value="credito3">Crédito 3x</option>
+                <option value="credito4">Crédito 4x</option>
+                <option value="credito6">Crédito 6x</option>
+                <option value="credito10">Crédito 10x</option>
+                <option value="credito12">Crédito 12x</option>
+              </select>
+            </div>
+            <div id="vd-taxa-info" class="info-mini" style="margin-top:6px"></div>
+            <div id="direta-results" class="mp-results"></div>
+          </div>
+
         </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-save-product" id="btn-salvar" onclick="salvarProduto()" style="display:none">💾 Salvar Produto</button>
+          <button class="btn-export" id="btn-export" onclick="exportarPDF()" style="display:none">📄 Exportar PDF</button>
+        </div>
+
       </div>
 
-      <!-- ══ PRODUTOS ══ -->
+<!-- ══ PRODUTOS ══ -->
       <div class="page" id="page-products">
         <div class="page-header">
           <div><h2>Meus Produtos</h2><p class="page-sub">Histórico completo de precificações</p></div>
@@ -586,8 +573,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=4"></script>
-<script src="js/calc.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/firebase-config.js?v=5"></script>
+<script src="js/calc.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
