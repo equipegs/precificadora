@@ -139,6 +139,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .calc-left{position:sticky;top:70px;}
 .calc-right{min-width:0;}
 
+/* ── NEW CALC TOP/BOTTOM LAYOUT ── */
+.calc-inputs-top{margin-bottom:16px;}
+.calc-inputs-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;}
+.calc-inputs-row .card{flex:1;min-width:260px;margin-bottom:0;}
+.calc-mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
+
 /* ── DASHBOARD ── */
 .dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
