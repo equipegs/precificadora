@@ -202,6 +202,10 @@
                 <div class="field"><label>EAN / Código de barras</label><input type="text" id="f-ean" placeholder="Ex: 7891234567890"/></div>
               </div>
               <div class="field"><label>Fornecedor</label><input type="text" id="f-fornecedor" placeholder="Ex: Fornecedor ABC Ltda"/></div>
+              <div class="field" style="margin-top:10px">
+                <label>📝 Observações</label>
+                <textarea id="f-obs" placeholder="Ex: Fornecedor aumentou em março, produto sazonal, aguardando cotação..." rows="3" style="width:100%;padding:9px 11px;font-size:13px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--font);resize:vertical;line-height:1.5"></textarea>
+              </div>
             </div>
 
             <div class="card" id="card-3d" style="flex:1;min-width:280px;display:none">
@@ -390,6 +394,13 @@
               <option value="brinquedos">Brinquedos</option>
               <option value="outros">Outros</option>
             </select>
+            <select id="filtro-ordem" onchange="loadProducts()" class="filter-select">
+              <option value="recente">Mais recente</option>
+              <option value="nome">Nome A-Z</option>
+              <option value="custo_asc">Menor custo</option>
+              <option value="custo_desc">Maior custo</option>
+              <option value="margem">Menor margem</option>
+            </select>
             <button class="btn-primary" onclick="showPage('calc')">+ Novo</button>
           </div>
         </div>
@@ -557,6 +568,21 @@
   </div>
 </div>
 
+<!-- MODAL ANÁLISE RÁPIDA -->
+<div id="modal-analise" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:680px">
+    <div class="modal-header">
+      <h3 id="analise-title">Análise Rápida</h3>
+      <button onclick="document.getElementById('modal-analise').style.display='none'">✕</button>
+    </div>
+    <div id="analise-body" class="modal-body"></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <button class="btn-primary" id="analise-carregar" onclick="">✏️ Abrir para editar</button>
+      <button class="btn-outline" onclick="document.getElementById('modal-analise').style.display='none'">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL COMPARAÇÃO -->
 <div id="modal-compare" class="modal" style="display:none">
   <div class="modal-box modal-wide">
@@ -573,8 +599,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=5"></script>
-<script src="js/calc.js?v=5"></script>
-<script src="js/app.js?v=5"></script>
+<script src="js/firebase-config.js?v=6"></script>
+<script src="js/calc.js?v=6"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>
