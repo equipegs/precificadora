@@ -198,6 +198,7 @@ function getFormData(){
     tt_taxa:parseFloat(document.getElementById('tt-taxa').value)||0,
     tt_afil:parseFloat(document.getElementById('tt-afil').value)||0,
     vd_pagamento:document.getElementById('vd-pagamento').value,
+    obs:document.getElementById('f-obs')?document.getElementById('f-obs').value.trim():'',
     savedAt:new Date().toISOString(),
     updatedAt:new Date().toISOString(),
   };
@@ -208,8 +209,37 @@ async function salvarProduto(){
   if(!currentUser||!db){showToast('Faça login para salvar','error');return;}
   const data=getFormData();
   try{
-    await db.collection('users').doc(currentUser.uid).collection('produtos').add(data);
-    showToast('Produto salvo! 💾','success');
+    // Check if product with same name already exists to update instead of duplicate
+    const snap=await db.collection('users').doc(currentUser.uid)
+      .collection('produtos').where('nome','==',data.nome).limit(1).get();
+
+    const pb=(data.insumos+data.nf+data.frete)/100;
+    const custo=(data.custo||0)+(data.embalagem||0);
+    const vml=calcVendaML(custo,pb,data.lucros[1],(data.ml_taxa||14)/100,data.ml_peso||0.3);
+    const snapshot={
+      date:new Date().toISOString(),
+      custo:data.custo,
+      preco_ml:data.preco_ml||0,
+      preco_shopee:data.preco_shopee||0,
+      preco_tiktok:data.preco_tiktok||0,
+      preco_magalu:data.preco_magalu||0,
+      vml_calculado:vml||0,
+    };
+
+    if(!snap.empty){
+      // Update existing — append to history
+      const docRef=snap.docs[0].ref;
+      const existing=snap.docs[0].data();
+      const history=(existing.historico||[]).slice(-29); // keep last 30
+      history.push(snapshot);
+      await docRef.update(Object.assign({},data,{historico:history,updatedAt:new Date().toISOString()}));
+      showToast('Produto atualizado! 💾','success');
+    }else{
+      // New product
+      await db.collection('users').doc(currentUser.uid).collection('produtos')
+        .add(Object.assign({},data,{historico:[snapshot]}));
+      showToast('Produto salvo! 💾','success');
+    }
   }catch(e){showToast('Erro ao salvar: '+e.message,'error');}
 }
 
@@ -236,6 +266,7 @@ async function carregarProduto(id){
       ['ml-envio','ml_envio','proprio'],
       ['tt-taxa','tt_taxa',6],['tt-afil','tt_afil',5],
       ['vd-pagamento','vd_pagamento','outros'],
+      ['f-obs','obs',''],
     ];
     fields.forEach(([elId,key,def])=>{
       const el=document.getElementById(elId);
@@ -261,6 +292,124 @@ async function deletarProduto(id){
   }catch(e){showToast('Erro ao apagar','error');}
 }
 
+// ── ANÁLISE RÁPIDA ────────────────────────────
+async function analisarProduto(id){
+  if(!currentUser||!db)return;
+  try{
+    const doc=await db.collection('users').doc(currentUser.uid).collection('produtos').doc(id).get();
+    if(!doc.exists)return;
+    const d=doc.data();
+    const pb=((d.insumos||0)+(d.nf||0)+(d.frete||0))/100;
+    const custo=(d.custo||0)+(d.embalagem||0);
+    const lucros=[d.lucros?d.lucros[0]:5, d.lucros?d.lucros[1]:10, d.lucros?d.lucros[2]:15, d.lucros?d.lucros[3]:20];
+
+    const mps=[
+      {name:'Mercado Livre',badge:'ML',bg:'#FFE600',fg:'#000',
+        calc:function(l){return calcVendaML(custo,pb,l,(d.ml_taxa||14)/100,d.peso||0.3);},
+        taxa:function(v){return v*(d.ml_taxa||14)/100+mlCustoOp(d.peso||0.3,v);}},
+      {name:'Shopee',badge:'SP',bg:'#EE4D2D',fg:'#fff',
+        calc:function(l){return calcVendaShopee(custo,pb,l);},
+        taxa:function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;}},
+      {name:'TikTok',badge:'TT',bg:'#111',fg:'#00c87a',
+        calc:function(l){var dn=1-pb-(d.tt_taxa||6)/100-(d.tt_afil||5)/100-l/100;return dn>0?custo/dn:null;},
+        taxa:function(v){return v*((d.tt_taxa||6)+(d.tt_afil||5))/100;}},
+      {name:'Magalu',badge:'MG',bg:'#0086FF',fg:'#fff',
+        calc:function(l){return calcVendaMagalu(custo,pb,l);},
+        taxa:function(v){return v*0.148+5;}},
+      {name:'Venda Direta',badge:'VD',bg:'#00c87a',fg:'#000',
+        calc:function(l){var dn=1-pb-l/100;return dn>0?custo/dn:null;},
+        taxa:function(){return 0;}},
+    ];
+
+    var data=d.savedAt?new Date(d.savedAt).toLocaleDateString('pt-BR'):'—';
+    var html='<div style="margin-bottom:16px">';
+    html+='<div style="font-size:13px;color:var(--text2);margin-bottom:4px">'+
+      (d.modo==='3d'?'🖨️ Impressão 3D':'📦 Produto Normal')+' · Salvo em '+data+'</div>';
+    html+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">';
+    html+='<span>💰 Custo: <strong>'+fmt(d.custo)+'</strong></span>';
+    if(d.embalagem) html+='<span>📦 Embalagem: <strong>'+fmt(d.embalagem)+'</strong></span>';
+    if(d.peso) html+='<span>⚖️ Peso: <strong>'+d.peso+'kg</strong></span>';
+    if(d.sku) html+='<span>SKU: <strong>'+d.sku+'</strong></span>';
+    if(d.fornecedor) html+='<span>🏭 '+d.fornecedor+'</span>';
+    html+='</div>';
+    if(d.obs) html+='<div style="margin-top:8px;font-size:12px;color:var(--text2);background:var(--bg3);padding:8px 10px;border-radius:6px">📝 '+d.obs+'</div>';
+    html+='</div>';
+
+    // Table
+    html+='<div style="overflow-x:auto"><table class="analise-table">';
+    html+='<thead><tr><th>Marketplace</th>';
+    lucros.forEach(function(l){html+='<th>'+l+'% lucro</th>';});
+    html+='</tr></thead><tbody>';
+
+    mps.forEach(function(mp){
+      html+='<tr>';
+      html+='<td><div style="display:flex;align-items:center;gap:8px">';
+      html+='<div style="width:24px;height:24px;border-radius:5px;background:'+mp.bg+';color:'+mp.fg+
+        ';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0">'+mp.badge+'</div>';
+      html+=mp.name+'</div></td>';
+      lucros.forEach(function(l){
+        var v=mp.calc(l);
+        var lucroRS=v?v*(l/100):null;
+        var min=d.margem_min||10;
+        var cor=l<min?'var(--yellow)':'var(--green)';
+        if(!v||!isFinite(v)){html+='<td style="color:var(--text3)">—</td>';}
+        else{html+='<td><div class="analise-price" style="color:'+cor+'">'+fmt(v)+'</div><div style="font-size:11px;color:var(--text2)">lucro '+fmt(lucroRS)+'</div></td>';}
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+
+    // History chart
+    if(d.historico&&d.historico.length>1){
+      html+='<div style="margin-top:16px">';
+      html+='<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📈 Histórico de custo e preço ML</div>';
+      var hist=d.historico.slice(-10);
+      var maxV=Math.max.apply(null,hist.map(function(h){return Math.max(h.custo||0,h.vml_calculado||0);}));
+      html+='<div class="hist-chart">';
+      hist.forEach(function(h){
+        var hDate=new Date(h.date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+        var custoH=Math.round((h.custo||0)/maxV*80);
+        var vmlH=Math.round((h.vml_calculado||0)/maxV*80);
+        html+='<div class="hist-col">';
+        html+='<div class="hist-bars">';
+        html+='<div class="hist-bar" style="height:'+custoH+'px;background:var(--red)" title="Custo: '+fmt(h.custo)+'"></div>';
+        html+='<div class="hist-bar" style="height:'+vmlH+'px;background:var(--green)" title="Preço ML: '+fmt(h.vml_calculado)+'"></div>';
+        html+='</div>';
+        html+='<div class="hist-label">'+hDate+'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+      html+='<div style="display:flex;gap:12px;font-size:11px;color:var(--text2);margin-top:6px">';
+      html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:4px"></span>Custo</span>';
+      html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px"></span>Preço ML (10% lucro)</span>';
+      html+='</div></div>';
+    }
+
+    document.getElementById('analise-title').textContent=d.nome;
+    document.getElementById('analise-body').innerHTML=html;
+    document.getElementById('analise-carregar').setAttribute('onclick','carregarProduto("'+id+'");document.getElementById("modal-analise").style.display="none"');
+    document.getElementById('modal-analise').style.display='flex';
+  }catch(e){showToast('Erro ao carregar análise','error');}
+}
+
+// ── DUPLICAR PRODUTO ─────────────────────────
+async function duplicarProduto(id){
+  if(!currentUser||!db)return;
+  try{
+    const doc=await db.collection('users').doc(currentUser.uid).collection('produtos').doc(id).get();
+    if(!doc.exists)return;
+    const d=doc.data();
+    const novo=Object.assign({},d,{
+      nome:d.nome+' (cópia)',
+      savedAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString(),
+    });
+    await db.collection('users').doc(currentUser.uid).collection('produtos').add(novo);
+    showToast('Produto duplicado! ⧉','success');
+    loadProducts();
+  }catch(e){showToast('Erro ao duplicar','error');}
+}
+
 // ── LOAD PRODUCTS ─────────────────────────────
 async function loadProducts(){
   if(!currentUser||!db)return;
@@ -272,11 +421,34 @@ async function loadProducts(){
   const searchField=document.getElementById('search-field');
   const searchTerm=(searchInput?searchInput.value.trim().toLowerCase():'');
   const searchBy=(searchField?searchField.value:'nome');
+  const ordemEl=document.getElementById('filtro-ordem');
+  const ordem=ordemEl?ordemEl.value:'recente';
   try{
     const snap=await db.collection('users').doc(currentUser.uid)
       .collection('produtos').orderBy('savedAt','desc').get();
     let docs=snap.docs;
     if(catFiltro) docs=docs.filter(function(d){return d.data().categoria===catFiltro;});
+    // Sort
+    docs=docs.slice().sort(function(a,b){
+      var da=a.data(), db=b.data();
+      if(ordem==='nome') return (da.nome||'').localeCompare(db.nome||'');
+      if(ordem==='custo_asc') return (da.custo||0)-(db.custo||0);
+      if(ordem==='custo_desc') return (db.custo||0)-(da.custo||0);
+      if(ordem==='margem'){
+        var pbA=((da.insumos||0)+(da.nf||0)+(da.frete||0))/100;
+        var pbB=((db.insumos||0)+(db.nf||0)+(db.frete||0))/100;
+        var cA=(da.custo||0)+(da.embalagem||0);
+        var cB=(db.custo||0)+(db.embalagem||0);
+        var vA=calcVendaML(cA,pbA,10,(da.ml_taxa||14)/100,da.peso||0.3);
+        var vB=calcVendaML(cB,pbB,10,(db.ml_taxa||14)/100,db.peso||0.3);
+        var mA=vA?(vA-cA-vA*pbA-mlCustoOp(da.peso||0.3,vA))/vA*100:999;
+        var mB=vB?(vB-cB-vB*pbB-mlCustoOp(db.peso||0.3,vB))/vB*100:999;
+        return mA-mB;
+      }
+      // recente: já vem ordenado do Firestore
+      return 0;
+    });
+
     if(searchTerm) docs=docs.filter(function(d){
       const val=(d.data()[searchBy]||'').toString().toLowerCase();
       return val.indexOf(searchTerm)>-1;
@@ -331,9 +503,12 @@ async function loadProducts(){
       html+='<div class="product-meta">'+dims+(d.peso||'')+'kg · Custo: '+fmt(d.custo)+' · '+data+'</div>';
       if(identInfo) html+='<div class="pc-ident">'+identInfo+'</div>';
       if(mpRows) html+='<div class="pc-mp-list">'+mpRows+'</div>';
+      if(d.obs) html+='<div class="pc-obs">📝 '+d.obs+'</div>';
       html+='</div>';
       html+='<div class="product-actions">';
+      html+='<button class="btn-icon" data-id="'+id+'" onclick="analisarProduto(this.dataset.id)">👁 Análise</button>';
       html+='<button class="btn-icon" data-id="'+id+'" onclick="carregarProduto(this.dataset.id)">✏️ Carregar</button>';
+      html+='<button class="btn-icon" data-id="'+id+'" onclick="duplicarProduto(this.dataset.id)" title="Duplicar produto">⧉ Duplicar</button>';
       html+='<button class="btn-icon danger" data-id="'+id+'" onclick="deletarProduto(this.dataset.id)">✕</button>';
       html+='</div></div>';
       return html;
