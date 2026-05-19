@@ -433,3 +433,53 @@ function calcularMargemAtual(){
   html+='</div>';
   box.innerHTML=html;
 }
+
+
+// ── LIMPAR FORMULÁRIO ────────────────────────
+function limparFormulario(){
+  var textFields=['f-nome','f-custo','f-embalagem','f-comp','f-alt','f-larg',
+    'f-sku','f-ean','f-fornecedor','f-obs',
+    'f-gramas','f-custo-fil','f-horas','f-mao-min',
+    'f-preco-ml','f-preco-shopee','f-preco-tiktok','f-preco-magalu','f-preco-direta'];
+  textFields.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.value='';
+  });
+  // Reset numeric defaults
+  var defaults={'f-peso':'0.3','f-watts':'350','f-kwh':'0.90','f-mao-hora':'35','f-embalagem':'0',
+    'f-insumos':'3','f-nf':'8','f-frete':'0','f-margem-min':'10',
+    'f-l1':'5','f-l2':'10','f-l3':'15','f-l4':'20','ml-taxa':'14','tt-taxa':'6','tt-afil':'5'};
+  Object.keys(defaults).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.value=defaults[id];
+  });
+  // Reset selects
+  var selects={'f-categoria':'','ml-tipo':'classico','ml-envio':'proprio',
+    'vd-pagamento':'outros','f-impressora':''};
+  Object.keys(selects).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.value=selects[id];
+  });
+  // Reset mode
+  if(typeof setMode==='function') setMode('normal');
+  // Clear results
+  ['ml-results','shopee-results','tiktok-results','magalu-results','direta-results']
+    .forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+  var els={
+    'ml-custo-op':'textContent','vd-taxa-info':'textContent'
+  };
+  Object.keys(els).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el[els[id]]='';
+  });
+  var boxMarg=document.getElementById('box-margens-atuais');
+  if(boxMarg){boxMarg.style.display='none';boxMarg.innerHTML='';}
+  var box3d=document.getElementById('box-3d');
+  if(box3d) box3d.style.display='none';
+  var alertEl=document.getElementById('alert-custo');
+  if(alertEl) alertEl.style.display='block';
+  var btnSalvar=document.getElementById('btn-salvar');
+  var btnExport=document.getElementById('btn-export');
+  if(btnSalvar) btnSalvar.style.display='none';
+  if(btnExport) btnExport.style.display='none';
+}
