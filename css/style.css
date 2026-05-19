@@ -391,3 +391,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 
 /* ── PRODUTO CARD ACTIONS ── */
 .product-actions{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+
+/* ── LIMPAR BUTTON ── */
+.btn-topbar-clear{padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);border-radius:8px;background:var(--red-dim);color:var(--red);font-family:var(--font);transition:all 0.15s;}
+.btn-topbar-clear:hover{background:var(--red);color:#fff;}
