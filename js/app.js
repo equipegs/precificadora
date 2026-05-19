@@ -142,7 +142,11 @@ function loginGoogle(){
 function logout(){firebase.auth().signOut();}
 
 // ── NAVEGAÇÃO ─────────────────────────────────
+var _currentPage='dashboard';
 function showPage(page){
+  // Auto-limpa o formulário ao sair do Calcular
+  if(_currentPage==='calc' && page!=='calc') limparFormulario();
+  _currentPage=page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById(`page-${page}`);
@@ -152,6 +156,8 @@ function showPage(page){
   const titles={dashboard:'Dashboard',calc:'Calcular',products:'Meus Produtos',
     simulator:'Simulador',hubs:'Central Hubs',config:'Configurações'};
   document.getElementById('page-title').textContent=titles[page]||page;
+  var btnLimpar=document.getElementById('btn-limpar');
+  if(btnLimpar) btnLimpar.style.display=page==='calc'?'block':'none';
   if(page==='products')loadProducts();
   if(page==='dashboard')loadDashboard();
   if(page==='simulator')simAtualizar();
@@ -234,11 +240,13 @@ async function salvarProduto(){
       history.push(snapshot);
       await docRef.update(Object.assign({},data,{historico:history,updatedAt:new Date().toISOString()}));
       showToast('Produto atualizado! 💾','success');
+      limparFormulario();
     }else{
       // New product
       await db.collection('users').doc(currentUser.uid).collection('produtos')
         .add(Object.assign({},data,{historico:[snapshot]}));
       showToast('Produto salvo! 💾','success');
+      limparFormulario();
     }
   }catch(e){showToast('Erro ao salvar: '+e.message,'error');}
 }
