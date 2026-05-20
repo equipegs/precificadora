@@ -483,3 +483,60 @@ function limparFormulario(){
   if(btnSalvar) btnSalvar.style.display='none';
   if(btnExport) btnExport.style.display='none';
 }
+
+// ── DASHBOARD CHART ──────────────────────────
+function renderDashChart(produtos){
+  var card=document.getElementById('dash-chart-card');
+  var el=document.getElementById('dash-chart');
+  if(!card||!el||!produtos.length){if(card)card.style.display='none';return;}
+
+  var months={};
+  produtos.forEach(function(p){
+    if(!p.savedAt)return;
+    var d=new Date(p.savedAt);
+    var key=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
+    var label=d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+    if(!months[key])months[key]={label:label,margens:[],custos:[]};
+    var pb=((p.insumos||0)+(p.nf||0)+(p.frete||0))/100;
+    var custo=(p.custo||0)+(p.embalagem||0);
+    var vml=calcVendaML(custo,pb,10,(p.ml_taxa||14)/100,p.peso||0.3);
+    if(vml&&isFinite(vml)){
+      var marg=(vml-custo-vml*pb-mlCustoOp(p.peso||0.3,vml))/vml*100;
+      months[key].margens.push(marg);
+    }
+    months[key].custos.push(custo);
+  });
+
+  var keys=Object.keys(months).sort().slice(-6);
+  if(keys.length<2){card.style.display='none';return;}
+  card.style.display='block';
+
+  var avgMargens=keys.map(function(k){
+    var m=months[k].margens;
+    return m.length?m.reduce(function(a,b){return a+b;},0)/m.length:0;
+  });
+  var avgCustos=keys.map(function(k){
+    var c=months[k].custos;
+    return c.length?c.reduce(function(a,b){return a+b;},0)/c.length:0;
+  });
+  var labels=keys.map(function(k){return months[k].label;});
+  var maxMarg=Math.max.apply(null,avgMargens)||1;
+  var maxCusto=Math.max.apply(null,avgCustos)||1;
+
+  var html='<div class="dchart"><div class="dchart-bars">';
+  keys.forEach(function(k,i){
+    var mH=Math.round((avgMargens[i]/maxMarg)*120);
+    var cH=Math.round((avgCustos[i]/maxCusto)*120);
+    var mColor=avgMargens[i]<10?'var(--yellow)':'var(--green)';
+    html+='<div class="dchart-col">';
+    html+='<div class="dchart-vals"><span style="font-size:10px;color:'+mColor+';font-weight:700">'+avgMargens[i].toFixed(1)+'%</span></div>';
+    html+='<div class="dchart-bar-wrap">';
+    html+='<div class="dchart-bar" style="height:'+mH+'px;background:'+mColor+'" title="Margem: '+avgMargens[i].toFixed(1)+'%"></div>';
+    html+='<div class="dchart-bar" style="height:'+cH+'px;background:var(--blue);opacity:0.6" title="Custo: '+fmt(avgCustos[i])+'"></div>';
+    html+='</div>';
+    html+='<div class="dchart-label">'+labels[i]+'</div>';
+    html+='</div>';
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
