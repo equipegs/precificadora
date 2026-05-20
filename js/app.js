@@ -7,7 +7,7 @@ let db = null;
 let compareList = [];
 
 // ── ACCESS CONTROL ───────────────────────────
-const TRIAL_DAYS = 2;
+const TRIAL_DAYS = 10;
 const PRICE_MONTHLY = 19.90;
 // Cupons: adicione/remova no Firebase em /coupons/{CODIGO}
 // Cada documento: { type: 'lifetime' | 'trial', days: 30, active: true }
