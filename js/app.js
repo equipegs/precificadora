@@ -26,30 +26,37 @@ async function checkAccess(user){
     // Assinatura ativa via Stripe
     if(data.stripeStatus === 'active') return {ok:true, plan:'paid'};
 
-    // Período de teste por dias (legado)
-    if(data.trialStart){
-      const start = data.trialStart.toDate ? data.trialStart.toDate() : new Date(data.trialStart);
-      const diff = (new Date() - start) / (1000*60*60*24);
-      if(diff < TRIAL_DAYS) return {ok:true, plan:'trial_days'};
-    } else {
-      // Primeiro acesso — inicia trial por produtos
+    // Calcula dias e produtos usados
+    var trialStart = data.trialStart;
+    if(!trialStart){
+      // Primeiro acesso — inicia trial
       await db.collection('users').doc(user.uid).set({
         trialStart: new Date(),
         email: user.email,
         displayName: user.displayName,
         createdAt: new Date()
       }, {merge:true});
-      return {ok:true, plan:'trial'};
+      return {ok:true, plan:'trial', daysLeft:TRIAL_DAYS, productsLeft:TRIAL_PRODUCT_LIMIT, productsUsed:0};
     }
 
-    // Trial por dias expirou — verifica limite de produtos
-    const snap = await db.collection('users').doc(user.uid)
-      .collection('produtos').get();
-    if(snap.size < TRIAL_PRODUCT_LIMIT){
-      return {ok:true, plan:'trial', productsUsed: snap.size, productsLeft: TRIAL_PRODUCT_LIMIT - snap.size};
+    const start = trialStart.toDate ? trialStart.toDate() : new Date(trialStart);
+    const daysUsed = (new Date() - start) / (1000*60*60*24);
+    const daysLeft = Math.max(0, TRIAL_DAYS - daysUsed);
+
+    const snap = await db.collection('users').doc(user.uid).collection('produtos').get();
+    const productsUsed = snap.size;
+    const productsLeft = Math.max(0, TRIAL_PRODUCT_LIMIT - productsUsed);
+
+    // Bloqueia se passou 2 dias OU atingiu 5 produtos
+    if(daysLeft <= 0){
+      return {ok:false, reason:'trial_expired', daysLeft:0, productsUsed, productsLeft};
+    }
+    if(productsUsed >= TRIAL_PRODUCT_LIMIT){
+      return {ok:false, reason:'trial_limit', daysLeft, productsUsed, productsLeft:0};
     }
 
-    return {ok:false, reason:'trial_expired'};
+    return {ok:true, plan:'trial', daysLeft, productsUsed, productsLeft};
+
   } catch(e){ console.error(e); return {ok:false, reason:'error'}; }
 }
 
@@ -103,14 +110,55 @@ function irParaStripe(){
   showToast('Você será redirecionado ao pagamento seguro', 'success');
 }
 
-function mostrarPaywall(daysLeft){
+function mostrarPaywall(reason){
   document.getElementById('screen-auth').classList.remove('active');
   document.getElementById('screen-app').classList.remove('active');
   document.getElementById('screen-paywall').classList.add('active');
-  if(daysLeft === 0){
-    const title = document.querySelector('#paywall-content .auth-sub');
-    if(title) title.textContent = 'Seu período de teste encerrou — assine para continuar';
+  const title = document.querySelector('#paywall-content .auth-sub');
+  if(title){
+    if(reason==='trial_limit'){
+      title.textContent = 'Você atingiu o limite de 5 produtos no período de teste — assine para continuar';
+    } else {
+      title.textContent = 'Seu período de teste de 2 dias encerrou — assine para continuar';
+    }
   }
+}
+
+// ── ATUALIZA CONTADOR TRIAL ──────────────────
+async function atualizarContadorTrial(){
+  if(!currentUser||!db) return;
+  try{
+    const access = await checkAccess(currentUser);
+    if(access.plan==='trial'){
+      const pLeft = access.productsLeft!==undefined ? access.productsLeft : TRIAL_PRODUCT_LIMIT;
+      const dLeft = access.daysLeft!==undefined ? Math.ceil(access.daysLeft) : TRIAL_DAYS;
+      window._trialProductsLeft = pLeft;
+      window._trialDaysLeft = dLeft;
+      // Update sidebar
+      const infoEl = document.getElementById('user-info');
+      if(infoEl) infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · 🆓 Trial (' + dLeft + 'd · ' + pLeft + ' prod.)';
+      // Update banner
+      var banner = document.getElementById('trial-banner');
+      var bannerText = document.getElementById('trial-banner-text');
+      if(banner && bannerText){
+        banner.style.display='flex';
+        if(pLeft <= 0){
+          bannerText.innerHTML='🚫 Limite de produtos atingido — <strong>assine para continuar!</strong>';
+        } else if(dLeft <= 1){
+          bannerText.innerHTML='⏰ Último dia de trial — <strong>'+pLeft+' produto'+(pLeft!==1?'s':'')+' restante'+(pLeft!==1?'s':'')+' · assine para não perder o acesso!</strong>';
+        } else {
+          bannerText.innerHTML='🆓 Trial: <strong>'+dLeft+' dia'+(dLeft!==1?'s':'')+' e '+pLeft+' produto'+(pLeft!==1?'s':'')+' restante'+(pLeft!==1?'s':'')+' gratuitos</strong>. Assine para produtos ilimitados!';
+        }
+      }
+    } else if(!access.ok){
+      // Trial expirou — mostra paywall
+      mostrarPaywall(access.reason);
+    } else {
+      window._trialProductsLeft = undefined;
+      var banner = document.getElementById('trial-banner');
+      if(banner) banner.style.display='none';
+    }
+  } catch(e){ console.error(e); }
 }
 
 async function iniciarApp(){
@@ -127,13 +175,16 @@ async function iniciarApp(){
     const infoEl = document.getElementById('user-info');
     if(access.plan === 'lifetime'){
       infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · ♾️ Vitalício';
+      window._trialProductsLeft = undefined;
     } else if(access.plan === 'paid'){
       infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · ✅ Assinante';
-    } else if(access.plan === 'trial' || access.plan === 'trial_days'){
-      const left = access.productsLeft !== undefined ? access.productsLeft : TRIAL_PRODUCT_LIMIT;
-      infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · 🆓 Trial (' + left + ' prod. restantes)';
-      // Show trial banner
-      window._trialProductsLeft = left;
+      window._trialProductsLeft = undefined;
+    } else if(access.plan === 'trial'){
+      const dLeft = access.daysLeft !== undefined ? Math.ceil(access.daysLeft) : TRIAL_DAYS;
+      const pLeft = access.productsLeft !== undefined ? access.productsLeft : TRIAL_PRODUCT_LIMIT;
+      infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · 🆓 Trial (' + dLeft + 'd · ' + pLeft + ' prod.)';
+      window._trialProductsLeft = pLeft;
+      window._trialDaysLeft = dLeft;
     }
 
     showPage('dashboard');
@@ -235,12 +286,12 @@ async function salvarProduto(){
     // Check product limit for trial users
     const access = await checkAccess(currentUser);
     if(!access.ok){
-      mostrarPaywall(0);
+      mostrarPaywall(access.reason);
       return;
     }
-    if((access.plan==='trial'||access.plan==='trial_days') && access.productsLeft===0){
-      showToast('Limite de '+TRIAL_PRODUCT_LIMIT+' produtos atingido no trial. Assine para continuar!','error');
-      setTimeout(function(){ mostrarPaywall(0); }, 1500);
+    if(access.plan==='trial' && access.productsLeft<=0){
+      showToast('Limite de '+TRIAL_PRODUCT_LIMIT+' produtos gratuitos atingido. Assine para continuar!','error');
+      setTimeout(function(){ mostrarPaywall('trial_limit'); }, 1500);
       return;
     }
     // Check if product with same name already exists to update instead of duplicate
@@ -269,12 +320,14 @@ async function salvarProduto(){
       await docRef.update(Object.assign({},data,{historico:history,updatedAt:new Date().toISOString()}));
       showToast('Produto atualizado! 💾','success');
       limparFormulario();
+      atualizarContadorTrial();
     }else{
       // New product
       await db.collection('users').doc(currentUser.uid).collection('produtos')
         .add(Object.assign({},data,{historico:[snapshot]}));
       showToast('Produto salvo! 💾','success');
       limparFormulario();
+      atualizarContadorTrial();
     }
   }catch(e){showToast('Erro ao salvar: '+e.message,'error');}
 }
@@ -325,6 +378,7 @@ async function deletarProduto(id){
     showToast('Produto apagado','success');
     loadProducts();
     loadDashboard();
+    atualizarContadorTrial();
   }catch(e){showToast('Erro ao apagar','error');}
 }
 
@@ -634,16 +688,8 @@ async function loadDashboard(){
     document.getElementById('dash-empty').style.display='none';
     document.getElementById('dash-content').style.display='block';
 
-    // Trial banner
-    var banner=document.getElementById('trial-banner');
-    var bannerText=document.getElementById('trial-banner-text');
-    if(banner&&bannerText&&window._trialProductsLeft!==undefined){
-      var left=window._trialProductsLeft;
-      banner.style.display='flex';
-      bannerText.innerHTML='🆓 Plano gratuito — <strong>'+left+' produto'+(left!==1?'s':'')+' restante'+(left!==1?'s':'')+' para testar</strong>. Assine para produtos ilimitados!';
-    } else if(banner){
-      banner.style.display='none';
-    }
+    // Trial banner — atualiza em tempo real
+    atualizarContadorTrial();
 
     const produtos=snap.docs.map(d=>({id:d.id,...d.data()}));
 
