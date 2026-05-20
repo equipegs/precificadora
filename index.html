@@ -28,7 +28,7 @@
 <div id="app">
 
   <!-- ── PAYWALL ── -->
-  <div id="screen-paywall" class="screen">
+  <div id="screen-paywall" class="screen" style="display:none">
     <div class="auth-wrap">
       <div class="auth-glow"></div>
       <div class="logo-big"><span class="green">Margi</span>fy</div>
@@ -38,7 +38,7 @@
         <div class="plan-card">
           <div class="plan-header">
             <span class="plan-name">Plano Mensal</span>
-            <span class="plan-trial">2 dias grátis</span>
+            <span class="plan-trial">10 dias grátis</span>
           </div>
           <div class="plan-price">R$ 19,90<span class="plan-period">/mês</span></div>
           <ul class="plan-features">
@@ -49,7 +49,7 @@
             <li>✅ Cancele quando quiser</li>
           </ul>
           <button class="btn-stripe" onclick="irParaStripe()">Começar 10 dias grátis →</button>
-          <p style="font-size:11px;color:var(--text3);margin-top:8px">Cartão necessário. Cancele antes de 2 dias e não paga nada.</p>
+          <p style="font-size:11px;color:var(--text3);margin-top:8px">Cartão necessário. Cancele antes de 10 dias e não paga nada.</p>
         </div>
         <div class="coupon-section">
           <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Tem um cupom de acesso?</p>
@@ -92,7 +92,7 @@
   </div>
 
   <!-- ── MAIN APP ── -->
-  <div id="screen-app" class="screen">
+  <div id="screen-app" class="screen" style="display:none">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="logo-sm-img">
@@ -680,8 +680,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=10"></script>
-<script src="js/calc.js?v=10"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/firebase-config.js?v=11"></script>
+<script src="js/calc.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>
