@@ -135,6 +135,11 @@
 
       <!-- ══ DASHBOARD ══ -->
       <div class="page active" id="page-dashboard">
+        <div id="trial-banner" class="trial-banner" style="display:none">
+          <span>⏳</span>
+          <span id="trial-banner-text">Você está no plano gratuito.</span>
+          <button class="btn-upgrade" onclick="mostrarPaywall(0)">Assinar R$19,90/mês →</button>
+        </div>
         <div id="dash-empty" class="empty-state" style="display:none">
           <div class="empty-icon">📊</div>
           <p>Nenhum produto salvo ainda.<br/>Faça seu primeiro cálculo!</p>
@@ -155,6 +160,15 @@
           <div class="card" id="dash-alertas-card" style="display:none">
             <div class="card-label">⚠️ Alertas de Margem Baixa</div>
             <div id="dash-alertas"></div>
+          </div>
+
+          <div class="card" id="dash-chart-card" style="display:none">
+            <div class="card-label">📈 Evolução de Margem — Últimos 6 meses</div>
+            <div id="dash-chart" class="dash-chart-wrap"></div>
+            <div class="dash-chart-legend">
+              <span><span class="legend-dot" style="background:var(--green)"></span>Margem média (%)</span>
+              <span><span class="legend-dot" style="background:var(--blue)"></span>Custo médio (R$)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -569,6 +583,72 @@
   </div>
 </div>
 
+<!-- MODAL ONBOARDING -->
+<div id="modal-onboarding" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div class="onboarding-wrap">
+      <div class="onboarding-steps" id="onboarding-steps">
+
+        <div class="onboarding-step active" id="step-1">
+          <div class="onboarding-icon">👋</div>
+          <h2>Bem-vindo ao <span class="green">Margify!</span></h2>
+          <p>A precificadora inteligente para quem vende em marketplaces.<br/>Vamos te mostrar como funciona em 4 passos rápidos.</p>
+          <div class="onboarding-trial-info">
+            <span>🆓</span>
+            <span>Você tem <strong>5 produtos gratuitos</strong> para testar. Sem cartão agora.</span>
+          </div>
+        </div>
+
+        <div class="onboarding-step" id="step-2">
+          <div class="onboarding-icon">🧮</div>
+          <h2>Passo 1 — <span class="green">Calcular</span></h2>
+          <p>Informe o custo do produto e a Margify calcula automaticamente o preço de venda ideal para cada marketplace — ML, Shopee, TikTok, Magalu e Venda Direta.</p>
+          <div class="onboarding-tip">💡 O cálculo já considera todas as taxas, comissões e a sua margem desejada.</div>
+        </div>
+
+        <div class="onboarding-step" id="step-3">
+          <div class="onboarding-icon">💰</div>
+          <h2>Passo 2 — <span class="green">Preços Praticados</span></h2>
+          <p>Já vende em algum marketplace? Informe o preço atual e a Margify mostra em tempo real qual é a sua margem real — e alerta se estiver abaixo do mínimo.</p>
+          <div class="onboarding-tip">⚠️ Muitos vendedores descobrem aqui que estão vendendo no prejuízo.</div>
+        </div>
+
+        <div class="onboarding-step" id="step-4">
+          <div class="onboarding-icon">📦</div>
+          <h2>Passo 3 — <span class="green">Salvar e Acompanhar</span></h2>
+          <p>Salve seus produtos e acompanhe tudo no Dashboard — alertas de margem baixa, histórico de preços e os melhores lucros por produto.</p>
+          <div class="onboarding-tip">📈 O histórico registra toda vez que você atualizar um produto.</div>
+        </div>
+
+        <div class="onboarding-step" id="step-5">
+          <div class="onboarding-icon">🚀</div>
+          <h2>Tudo pronto!</h2>
+          <p>Chega de precificar no achismo. Vamos calcular seu primeiro produto?</p>
+          <div class="onboarding-trial-info" style="background:rgba(0,200,122,0.08);border-color:var(--green)">
+            <span>✅</span>
+            <span>Dúvidas? Fale com a gente: <strong>suporte.margify@gmail.com</strong></span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="onboarding-footer">
+        <div class="onboarding-dots" id="onboarding-dots">
+          <span class="dot active" onclick="goStep(1)"></span>
+          <span class="dot" onclick="goStep(2)"></span>
+          <span class="dot" onclick="goStep(3)"></span>
+          <span class="dot" onclick="goStep(4)"></span>
+          <span class="dot" onclick="goStep(5)"></span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-outline" id="btn-onboard-skip" onclick="fecharOnboarding()">Pular</button>
+          <button class="btn-primary" id="btn-onboard-next" onclick="nextStep()">Próximo →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ANÁLISE RÁPIDA -->
 <div id="modal-analise" class="modal" style="display:none">
   <div class="modal-box" style="max-width:680px">
@@ -600,8 +680,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=8"></script>
-<script src="js/calc.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/firebase-config.js?v=9"></script>
+<script src="js/calc.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>
