@@ -12,36 +12,45 @@ const PRICE_MONTHLY = 19.90;
 // Cupons: adicione/remova no Firebase em /coupons/{CODIGO}
 // Cada documento: { type: 'lifetime' | 'trial', days: 30, active: true }
 
+const TRIAL_PRODUCT_LIMIT = 5; // Limite de produtos no trial
+
 async function checkAccess(user){
-  if(!db) return false;
+  if(!db) return {ok:false, reason:'noauth'};
   try{
-    // 1. Verifica acesso no Firestore do usuário
     const userDoc = await db.collection('users').doc(user.uid).get();
     const data = userDoc.exists ? userDoc.data() : {};
 
     // Acesso vitalício por cupom
-    if(data.access === 'lifetime') return true;
+    if(data.access === 'lifetime') return {ok:true, plan:'lifetime'};
 
     // Assinatura ativa via Stripe
-    if(data.stripeStatus === 'active') return true;
+    if(data.stripeStatus === 'active') return {ok:true, plan:'paid'};
 
-    // Período de teste
+    // Período de teste por dias (legado)
     if(data.trialStart){
       const start = data.trialStart.toDate ? data.trialStart.toDate() : new Date(data.trialStart);
       const diff = (new Date() - start) / (1000*60*60*24);
-      if(diff < TRIAL_DAYS) return true;
+      if(diff < TRIAL_DAYS) return {ok:true, plan:'trial_days'};
     } else {
-      // Primeiro acesso — inicia trial
+      // Primeiro acesso — inicia trial por produtos
       await db.collection('users').doc(user.uid).set({
         trialStart: new Date(),
         email: user.email,
         displayName: user.displayName,
         createdAt: new Date()
       }, {merge:true});
-      return true;
+      return {ok:true, plan:'trial'};
     }
-    return false;
-  } catch(e){ console.error(e); return false; }
+
+    // Trial por dias expirou — verifica limite de produtos
+    const snap = await db.collection('users').doc(user.uid)
+      .collection('produtos').get();
+    if(snap.size < TRIAL_PRODUCT_LIMIT){
+      return {ok:true, plan:'trial', productsUsed: snap.size, productsLeft: TRIAL_PRODUCT_LIMIT - snap.size};
+    }
+
+    return {ok:false, reason:'trial_expired'};
+  } catch(e){ console.error(e); return {ok:false, reason:'error'}; }
 }
 
 async function getTrialDaysLeft(user){
@@ -106,19 +115,27 @@ function mostrarPaywall(daysLeft){
 
 async function iniciarApp(){
   db = firebase.firestore();
-  const hasAccess = await checkAccess(currentUser);
-  if(hasAccess){
-    const daysLeft = await getTrialDaysLeft(currentUser);
+  const access = await checkAccess(currentUser);
+  if(access.ok){
     document.getElementById('screen-auth').classList.remove('active');
     document.getElementById('screen-paywall').classList.remove('active');
     document.getElementById('screen-app').classList.add('active');
     document.getElementById('user-info').textContent = currentUser.displayName || currentUser.email;
     document.getElementById('user-avatar').textContent = currentUser.displayName ? currentUser.displayName.split(' ')[0] : '👤';
-    // Mostra dias restantes no trial
-    if(daysLeft > 0 && daysLeft <= TRIAL_DAYS){
-      const el = document.getElementById('user-info');
-      el.textContent = (currentUser.displayName || currentUser.email) + ' · ' + daysLeft + 'd trial';
+
+    // Mostra info do plano na sidebar
+    const infoEl = document.getElementById('user-info');
+    if(access.plan === 'lifetime'){
+      infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · ♾️ Vitalício';
+    } else if(access.plan === 'paid'){
+      infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · ✅ Assinante';
+    } else if(access.plan === 'trial' || access.plan === 'trial_days'){
+      const left = access.productsLeft !== undefined ? access.productsLeft : TRIAL_PRODUCT_LIMIT;
+      infoEl.textContent = (currentUser.displayName||currentUser.email) + ' · 🆓 Trial (' + left + ' prod. restantes)';
+      // Show trial banner
+      window._trialProductsLeft = left;
     }
+
     showPage('dashboard');
     loadDashboard();
   } else {
@@ -215,6 +232,17 @@ async function salvarProduto(){
   if(!currentUser||!db){showToast('Faça login para salvar','error');return;}
   const data=getFormData();
   try{
+    // Check product limit for trial users
+    const access = await checkAccess(currentUser);
+    if(!access.ok){
+      mostrarPaywall(0);
+      return;
+    }
+    if((access.plan==='trial'||access.plan==='trial_days') && access.productsLeft===0){
+      showToast('Limite de '+TRIAL_PRODUCT_LIMIT+' produtos atingido no trial. Assine para continuar!','error');
+      setTimeout(function(){ mostrarPaywall(0); }, 1500);
+      return;
+    }
     // Check if product with same name already exists to update instead of duplicate
     const snap=await db.collection('users').doc(currentUser.uid)
       .collection('produtos').where('nome','==',data.nome).limit(1).get();
@@ -606,6 +634,17 @@ async function loadDashboard(){
     document.getElementById('dash-empty').style.display='none';
     document.getElementById('dash-content').style.display='block';
 
+    // Trial banner
+    var banner=document.getElementById('trial-banner');
+    var bannerText=document.getElementById('trial-banner-text');
+    if(banner&&bannerText&&window._trialProductsLeft!==undefined){
+      var left=window._trialProductsLeft;
+      banner.style.display='flex';
+      bannerText.innerHTML='🆓 Plano gratuito — <strong>'+left+' produto'+(left!==1?'s':'')+' restante'+(left!==1?'s':'')+' para testar</strong>. Assine para produtos ilimitados!';
+    } else if(banner){
+      banner.style.display='none';
+    }
+
     const produtos=snap.docs.map(d=>({id:d.id,...d.data()}));
 
     // Stats
@@ -645,6 +684,9 @@ async function loadDashboard(){
           <span style="color:var(--text2);font-size:11px;margin-left:6px">ML ${fmt(p.vml)}</span>
         </div>
       </div>`).join('');
+
+    // Chart — evolução de margem por mês
+    renderDashChart(produtos);
 
     // Alertas baseados nos precos reais praticados
     const alertasCard=document.getElementById('dash-alertas-card');
@@ -755,6 +797,58 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 });
+
+// ── ONBOARDING ───────────────────────────────
+var _onboardStep = 1;
+var _totalSteps = 5;
+
+function mostrarOnboarding(){
+  document.getElementById('modal-onboarding').style.display='flex';
+  goStep(1);
+}
+
+function fecharOnboarding(){
+  document.getElementById('modal-onboarding').style.display='none';
+  // Mark as seen in localStorage
+  localStorage.setItem('mgf_onboarded','1');
+  showPage('calc');
+}
+
+function goStep(n){
+  _onboardStep = n;
+  // Hide all steps
+  for(var i=1;i<=_totalSteps;i++){
+    var el=document.getElementById('step-'+i);
+    if(el) el.classList.toggle('active', i===n);
+  }
+  // Update dots
+  document.querySelectorAll('#onboarding-dots .dot').forEach(function(d,i){
+    d.classList.toggle('active', i===n-1);
+  });
+  // Update button
+  var btn=document.getElementById('btn-onboard-next');
+  var skip=document.getElementById('btn-onboard-skip');
+  if(n===_totalSteps){
+    btn.textContent='Começar agora! 🚀';
+    if(skip) skip.style.display='none';
+  } else {
+    btn.textContent='Próximo →';
+    if(skip) skip.style.display='block';
+  }
+}
+
+function nextStep(){
+  if(_onboardStep >= _totalSteps){
+    fecharOnboarding();
+  } else {
+    goStep(_onboardStep + 1);
+  }
+}
+
+function checkOnboarding(){
+  const seen = localStorage.getItem('mgf_onboarded');
+  if(!seen) mostrarOnboarding();
+}
 
 // ── TERMOS E LEGAL ────────────────────────────
 function toggleLoginBtn(){
