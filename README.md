@@ -4,12 +4,14 @@
 
 # Margify
 
-### 🇧🇷 Precifique certo, lucre mais. &nbsp;|&nbsp; 🌎 Price right, profit more.
+### 🇧🇷 Precifique certo, lucre mais.
+### 🌎 Price right, profit more.
 
-[![GitHub Pages](https://img.shields.io/badge/Live-equipegs.github.io%2Fprecificadora-00c87a?style=flat-square&logo=github)](https://equipegs.github.io/precificadora/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
-[![Built with Claude](https://img.shields.io/badge/Built%20with-Claude%20AI-blueviolet?style=flat-square)](https://claude.ai)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-equipegs.github.io/precificadora-00c87a?style=for-the-badge)](https://equipegs.github.io/precificadora/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Built with Claude](https://img.shields.io/badge/Built_with-Claude_AI-blueviolet?style=for-the-badge)](https://claude.ai)
+
+**A precificadora inteligente para vendedores brasileiros de e-commerce.**
 
 </div>
 
@@ -17,100 +19,156 @@
 
 ## 🇧🇷 Português
 
-### O que é o Margify?
-
-O **Margify** é uma precificadora inteligente e gratuita para vendedores de e-commerce brasileiros. Calcula automaticamente o preço de venda ideal para **Mercado Livre, Shopee, TikTok Shop, Magalu e Venda Direta** — considerando todas as taxas, comissões, impostos e a margem de lucro desejada.
-
 > **Chega de vender no prejuízo. Sua margem, sob controle.**
 
-### O problema que resolve
+O **Margify** é uma ferramenta web gratuita que calcula automaticamente o preço de venda ideal para os principais marketplaces brasileiros — considerando todas as taxas, comissões, impostos e a margem de lucro desejada.
 
-O Brasil tem mais de 10 milhões de vendedores ativos em marketplaces. A maioria precifica "no feeling" — sem considerar a complexidade real das taxas:
+---
 
-- 🛒 **Mercado Livre** cobra comissão variável + custo operacional por peso × faixa de preço (matriz 13×8)
-- 🛍️ **Shopee** tem comissão escalonada por faixa de valor (até 4 faixas diferentes)
-- 🎵 **TikTok Shop** cobra taxa de plataforma + comissão de afiliado
-- 🏬 **Magalu** cobra 14,8% + R$5,00 fixo por unidade
-- 💳 **Maquininha** tem taxas diferentes para débito, crédito e parcelamento
+### 📸 Screenshots
 
-O resultado? Vendedores que faturam bem mas não sobra nada no fim do mês.
+**Calculadora Multi-Marketplace**
 
-### Funcionalidades
+![Calcular](https://raw.githubusercontent.com/equipegs/precificadora/main/screenshots/calcular.png)
 
-| Funcionalidade | Descrição |
+*Preenche o custo e vê instantaneamente o preço correto em todos os marketplaces com alertas de margem baixa*
+
+---
+
+**Resultados com Detalhamento por Marketplace**
+
+![Resultados](https://raw.githubusercontent.com/equipegs/precificadora/main/screenshots/resultados.png)
+
+*ML, Shopee, TikTok, Magalu e Venda Direta — cada um com 4 metas de lucro e alerta "Abaixo do mínimo"*
+
+---
+
+**Análise Rápida de Produto**
+
+![Análise](https://raw.githubusercontent.com/equipegs/precificadora/main/screenshots/analise.png)
+
+*Painel de análise completo sem sair da lista — preços por marketplace × meta de lucro em uma tabela*
+
+---
+
+**Simulador "E se?"**
+
+![Simulador](https://raw.githubusercontent.com/equipegs/precificadora/main/screenshots/simulador.png)
+
+*Sliders interativos — arraste e veja todos os preços atualizando em tempo real*
+
+---
+
+### 🧠 O problema que resolve
+
+O Brasil tem mais de **10 milhões de vendedores ativos** em marketplaces. A maioria precifica no "feeling" — sem considerar a complexidade real das taxas:
+
+| Marketplace | Complexidade das taxas |
 |---|---|
-| 🧮 **Calculadora multi-marketplace** | Preço de venda correto para 5 marketplaces simultaneamente |
-| 📊 **Dashboard com alertas** | Visão geral dos produtos e alertas de margem baixa |
-| 💰 **Preços praticados hoje** | Compara o preço atual com a margem real em tempo real |
-| 🖨️ **Modo Impressão 3D** | Calcula custo de filamento, energia e mão de obra |
-| 🎛️ **Simulador "E se?"** | Sliders interativos para simular cenários |
-| 👁️ **Análise rápida** | Painel de análise sem sair da lista de produtos |
-| 📈 **Histórico de preços** | Registra a evolução de custo e margem ao longo do tempo |
-| ⧉ **Duplicar produto** | Cria cópias de produtos para variações |
-| 🔍 **Busca avançada** | Pesquisa por nome, SKU, EAN ou fornecedor |
-| 🔗 **Central Hubs** | Links diretos para ML, Shopee, TikTok, Magalu, Bling, Tiny |
-| 📄 **Exportar PDF** | Ficha completa do produto para impressão |
-| 🔐 **Login com Google** | Dados salvos na nuvem, acessíveis em qualquer dispositivo |
+| 🛒 **Mercado Livre** | Comissão variável + custo operacional por **peso × faixa de preço** (matriz 13×8 atualizada 2026) |
+| 🛍️ **Shopee** | Comissão **escalonada** com até 4 faixas diferentes (20%+R$4 até 14%+R$26) |
+| 🎵 **TikTok Shop** | Taxa de plataforma + comissão de afiliado separados |
+| 🏬 **Magalu** | 14,8% + R$5,00 fixo por unidade vendida |
+| 💳 **Maquininha** | Taxas diferentes para débito, crédito 1x até 12x |
 
-### Como a fórmula funciona
+O resultado? Vendedores que faturam bem mas **não sobra nada no fim do mês**.
 
-O cálculo resolve um problema circular — as despesas dependem do preço de venda, que por sua vez depende das despesas:
+---
+
+### ⚡ Funcionalidades
+
+| | Funcionalidade | Descrição |
+|---|---|---|
+| 🧮 | **Calculadora multi-marketplace** | Preço correto para 5 marketplaces simultaneamente |
+| 💰 | **Preços praticados hoje** | Vê a margem real dos seus preços atuais em tempo real |
+| ⚠️ | **Alertas de margem baixa** | Destaque vermelho quando abaixo do mínimo definido |
+| 📊 | **Dashboard com gráfico** | Evolução de margem e custo ao longo dos meses |
+| 🖨️ | **Modo Impressão 3D** | Filamento, energia elétrica e mão de obra no cálculo |
+| 🎛️ | **Simulador "E se?"** | Sliders interativos com preços em tempo real |
+| 👁️ | **Análise rápida** | Tabela completa sem sair da lista de produtos |
+| 📈 | **Histórico de preços** | Registra a evolução de custo e margem automaticamente |
+| ⧉ | **Duplicar produto** | Cria cópias para variações do mesmo item |
+| 🔍 | **Busca avançada** | Pesquisa por nome, SKU, EAN ou fornecedor |
+| 🔗 | **Central Hubs** | Links diretos para ML, Shopee, TikTok, Magalu, Bling, Tiny |
+| 📄 | **Exportar PDF** | Ficha completa do produto para impressão |
+| 🔐 | **Login com Google** | Dados salvos na nuvem, acessíveis em qualquer dispositivo |
+| 📱 | **PWA** | Instalável como app no celular (Android e iOS) |
+
+---
+
+### 🔬 Sofisticação técnica
+
+#### Algoritmo iterativo para Shopee e ML
+
+O Margify resolve um problema matemático circular — a taxa depende do preço de venda, que por sua vez depende da taxa:
 
 ```
-Preço de Venda = Custo ÷ (1 − % despesas gerais − % taxa marketplace − % lucro)
+Preço de Venda = Custo ÷ (1 − % despesas − % taxa marketplace − % lucro)
 ```
 
-Para Shopee e Mercado Livre, onde a taxa depende do valor final, o sistema usa **iteração numérica convergente** para encontrar o preço exato com precisão de R$0,001.
-
-### Stack técnica
-
-- **Frontend:** HTML5, CSS3, JavaScript puro (sem frameworks)
-- **Hospedagem:** GitHub Pages (gratuito)
-- **Banco de dados:** Firebase Firestore (NoSQL, tempo real)
-- **Autenticação:** Firebase Auth (Google OAuth)
-- **Pagamentos:** Stripe (assinatura mensal)
-- **PWA:** Manifest + Service Worker (instalável no celular)
-- **Desenvolvido com:** Claude AI (Anthropic)
-
-### Instalação e uso local
-
-```bash
-# Clone o repositório
-git clone https://github.com/equipegs/precificadora.git
-cd precificadora
-
-# Configure o Firebase
-# Edite js/firebase-config.js com suas credenciais
-
-# Abra no navegador
-open index.html
-```
-
-### Configuração do Firebase
-
-1. Crie um projeto em [console.firebase.google.com](https://console.firebase.google.com)
-2. Ative **Authentication → Google**
-3. Crie um banco **Firestore Database**
-4. Configure as regras de segurança:
+Para Shopee (comissão escalonada) e ML (custo operacional por peso), o sistema usa **iteração numérica convergente** — testa e refina o preço até atingir precisão de R$0,001:
 
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /coupons/{couponId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
+function calcVendaShopee(custo, pBase, lucroP) {
+  let v = custo / (1 - pBase - 0.14 - lucroP / 100); // estimativa inicial
+  for (let i = 0; i < 60; i++) {
+    const f = shopeeFaixa(v);                         // identifica faixa
+    const vn = (custo + f.fixo) / (1 - pBase - f.pct - lucroP / 100);
+    if (Math.abs(vn - v) < 0.001) { v = vn; break; } // convergiu
+    v = vn;
   }
+  return v;
 }
 ```
 
-5. Cole suas credenciais em `js/firebase-config.js`
+#### Matriz de custos operacionais ML (2026)
 
-### Licença
+13 faixas de peso × 8 faixas de preço = 104 combinações possíveis, todas mapeadas com os valores oficiais do Mercado Livre:
+
+```
+Peso ↓  | R$0-18  | R$19-48 | R$49-78 | R$79-99 | R$100-119 | ...
+até 0,3kg| R$5,65  | R$6,55  | R$7,75  | R$12,35 | R$14,35   | ...
+0,3-0,5kg| R$5,95  | R$6,65  | R$7,85  | R$13,25 | R$15,45   | ...
+...
+```
+
+---
+
+### 🏗️ Stack técnica
+
+```
+Frontend:       HTML5 + CSS3 + JavaScript puro (sem frameworks)
+Hospedagem:     GitHub Pages (gratuito, deploy automático)
+Banco de dados: Firebase Firestore (NoSQL, tempo real, por usuário)
+Autenticação:   Firebase Auth (Google OAuth)
+Pagamentos:     Stripe (assinatura mensal, trial 10 dias)
+PWA:            Web App Manifest + ícones multi-resolução
+Desenvolvido:   Claude AI (Anthropic) — co-desenvolvedor e arquiteto
+```
+
+---
+
+### 🔐 Privacidade e segurança
+
+- Dados de cada usuário isolados no Firebase (regras de segurança por UID)
+- Dados de pagamento processados exclusivamente pelo Stripe — não armazenamos cartões
+- Política de Privacidade completa em conformidade com a **LGPD (Lei 13.709/2018)**
+- Termos de Uso com limitação de responsabilidade e política de reembolso
+
+---
+
+### 🌱 Roadmap
+
+- [ ] API pública para integração com Bling e Tiny ERP
+- [ ] App mobile nativo (React Native)
+- [ ] Suporte a outros marketplaces: Shopee Ads, Amazon BR, Shein
+- [ ] Expansão para outros países da América Latina
+- [ ] Relatório mensal em PDF
+- [ ] Calculadora de ponto de equilíbrio
+
+---
+
+### 📄 Licença
 
 MIT — use, modifique e distribua livremente.
 
@@ -118,76 +176,50 @@ MIT — use, modifique e distribua livremente.
 
 ## 🌎 English
 
-### What is Margify?
-
-**Margify** is a free, intelligent pricing tool for Brazilian e-commerce sellers. It automatically calculates the ideal selling price for **Mercado Livre, Shopee, TikTok Shop, Magalu, and Direct Sales** — factoring in all fees, commissions, taxes, and desired profit margins.
-
 > **Stop selling at a loss. Your margin, under control.**
 
-### The problem it solves
+**Margify** is a free web tool that automatically calculates the ideal selling price for major Brazilian marketplaces — factoring in all fees, commissions, taxes, and desired profit margins.
 
-Brazil has over 10 million active marketplace sellers. Most price their products by guesswork — without accounting for the real complexity of marketplace fees:
+---
 
-- 🛒 **Mercado Livre** charges variable commission + weight-based operational cost (13×8 fee matrix)
-- 🛍️ **Shopee** has a tiered commission structure with up to 4 different price brackets
-- 🎵 **TikTok Shop** charges platform fee + affiliate commission
-- 🏬 **Magalu** charges 14.8% + R$5.00 fixed fee per unit
-- 💳 **Card machines** have different rates for debit, credit, and installments
+### 🧠 The problem
 
-The result? Sellers with good revenue but nothing left at the end of the month.
+Brazil has over **10 million active marketplace sellers**. Most price their products by guesswork, ignoring the real complexity:
 
-### Features
-
-| Feature | Description |
+| Marketplace | Fee complexity |
 |---|---|
-| 🧮 **Multi-marketplace calculator** | Correct selling price for 5 marketplaces simultaneously |
-| 📊 **Dashboard with alerts** | Product overview and low-margin alerts |
-| 💰 **Current prices tracker** | Compares actual prices with real-time margin analysis |
-| 🖨️ **3D Printing mode** | Calculates filament, energy, and labor costs |
-| 🎛️ **"What if?" Simulator** | Interactive sliders for scenario simulation |
-| 👁️ **Quick analysis** | Analysis panel without leaving the product list |
-| 📈 **Price history** | Tracks cost and margin evolution over time |
-| ⧉ **Duplicate product** | Clone products for variations |
-| 🔍 **Advanced search** | Search by name, SKU, EAN, or supplier |
-| 🔗 **Central Hubs** | Direct links to ML, Shopee, TikTok, Magalu, Bling, Tiny |
-| 📄 **PDF export** | Complete product sheet for printing |
-| 🔐 **Google login** | Cloud-saved data, accessible from any device |
+| 🛒 **Mercado Livre** | Variable commission + weight-based operational cost (**13×8 matrix**, updated 2026) |
+| 🛍️ **Shopee** | **Tiered commission** with up to 4 price brackets (20%+R$4 up to 14%+R$26) |
+| 🎵 **TikTok Shop** | Platform fee + separate affiliate commission |
+| 🏬 **Magalu** | 14.8% + R$5.00 fixed fee per unit |
+| 💳 **Card machines** | Different rates for debit, credit 1x to 12x installments |
 
-### How the pricing formula works
+---
 
-The calculation solves a circular problem — expenses depend on the selling price, which in turn depends on the expenses:
+### 🔬 Technical highlights
+
+- **Convergent numerical iteration** for circular pricing problems (Shopee tiered fees, ML weight-based costs)
+- **104-cell fee lookup table** for Mercado Livre operational costs (13 weight ranges × 8 price brackets)
+- **Real-time margin analysis** comparing current prices against minimum acceptable margin
+- **Price history tracking** with automatic snapshots on every product update
+- **PWA** — installable as a native app on Android and iOS
+
+---
+
+### 🏗️ Tech stack
 
 ```
-Selling Price = Cost ÷ (1 − % general expenses − % marketplace fee − % profit)
+Frontend:    Vanilla HTML5 + CSS3 + JavaScript (zero dependencies)
+Hosting:     GitHub Pages (free, auto-deploy)
+Database:    Firebase Firestore (NoSQL, real-time, per-user isolation)
+Auth:        Firebase Auth (Google OAuth)
+Payments:    Stripe (monthly subscription, 10-day trial)
+Built with:  Claude AI (Anthropic)
 ```
 
-For Shopee and Mercado Livre, where fees depend on the final value, the system uses **convergent numerical iteration** to find the exact price with R$0.001 precision.
+---
 
-### Tech stack
-
-- **Frontend:** Vanilla HTML5, CSS3, JavaScript (no frameworks)
-- **Hosting:** GitHub Pages (free)
-- **Database:** Firebase Firestore (NoSQL, real-time)
-- **Authentication:** Firebase Auth (Google OAuth)
-- **Payments:** Stripe (monthly subscription)
-- **PWA:** Manifest + icons (installable on mobile)
-- **Built with:** Claude AI (Anthropic)
-
-### Local setup
-
-```bash
-# Clone the repository
-git clone https://github.com/equipegs/precificadora.git
-cd precificadora
-
-# Configure Firebase
-# Edit js/firebase-config.js with your credentials
-
-# Open in browser
-open index.html
-```
-
-### License
+### 📄 License
 
 MIT — free to use, modify, and distribute.
 
@@ -195,9 +227,9 @@ MIT — free to use, modify, and distribute.
 
 <div align="center">
 
-**Built with ❤️ in Brazil**
+**Built with ❤️ in Brazil · Feito com ❤️ no Brasil**
 
-[🚀 Try Margify](https://equipegs.github.io/precificadora/) · [📧 Support](mailto:suporte.margify@gmail.com)
+[🚀 Acessar o Margify](https://equipegs.github.io/precificadora/) · [📧 suporte.margify@gmail.com](mailto:suporte.margify@gmail.com)
 
 *Precifique certo, lucre mais.*
 
