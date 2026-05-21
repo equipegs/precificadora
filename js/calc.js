@@ -540,3 +540,4 @@ function renderDashChart(produtos){
   html+='</div></div>';
   el.innerHTML=html;
 }
+
