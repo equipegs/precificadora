@@ -170,6 +170,17 @@
               <span><span class="legend-dot" style="background:var(--blue)"></span>Custo médio (R$)</span>
             </div>
           </div>
+
+          <div class="dash-coverage-row">
+            <div class="card" id="dash-donut-card" style="flex:1;min-width:260px">
+              <div class="card-label">🎯 Cobertura de Marketplaces</div>
+              <div id="dash-donut"></div>
+            </div>
+            <div class="card" id="dash-mp-rank-card" style="flex:1;min-width:260px">
+              <div class="card-label">🏆 Marketplaces com mais produtos</div>
+              <div id="dash-mp-rank"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -297,8 +308,12 @@
                 <div class="field"><label>TikTok Shop (R$)</label><input type="number" id="f-preco-tiktok" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
                 <div class="field"><label>Magalu (R$)</label><input type="number" id="f-preco-magalu" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
               </div>
-              <div class="field"><label>Venda Direta (R$)</label><input type="number" id="f-preco-direta" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              <div class="field-row">
+                <div class="field"><label>Amazon (R$)</label><input type="number" id="f-preco-amazon" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+                <div class="field"><label>Site Próprio (R$)</label><input type="number" id="f-preco-site" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
+              </div>
               <div id="box-margens-atuais" style="display:none;margin-top:10px"></div>
+              <p class="field-hint" style="margin-top:8px">💡 Campos preenchidos = produto anunciado naquele marketplace. Usado para análise de cobertura.</p>
             </div>
           </div>
 
@@ -364,6 +379,55 @@
 
           <div class="card mp-card">
             <div class="mp-header-row">
+              <div class="mp-badge" style="background:#FF9900;color:#000">AZ</div>
+              <span class="mp-name">Amazon</span>
+            </div>
+            <div class="field-row" style="margin-bottom:8px">
+              <div class="field">
+                <label>Tipo de envio</label>
+                <select id="az-envio" onchange="calcular()">
+                  <option value="dba">DBA — Delivery by Amazon</option>
+                  <option value="fba" disabled>FBA Fulfillment (em breve)</option>
+                  <option value="fba_onsite" disabled>FBA Onsite (em breve)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Comissão (%)</label>
+                <input type="number" id="az-taxa" value="15" step="0.5" oninput="calcular()"/>
+              </div>
+            </div>
+            <div id="az-dba-info" class="info-mini">Tarifa DBA calculada automaticamente por preço × peso × região</div>
+            <div id="amazon-results" class="mp-results"></div>
+          </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
+              <div class="mp-badge" style="background:#6C5CE7;color:#fff">ST</div>
+              <span class="mp-name">Site Próprio</span>
+            </div>
+            <div class="field-row" style="margin-bottom:8px">
+              <div class="field"><label>Plataforma (%)</label><input type="number" id="st-plat" value="0" step="0.1" oninput="calcular()"/></div>
+              <div class="field"><label>Frete fixo (R$)</label><input type="number" id="st-frete" value="0" step="0.5" oninput="calcular()"/></div>
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Gateway de pagamento</label>
+              <select id="st-gateway" onchange="calcular()">
+                <option value="pix">Pix / Débito</option>
+                <option value="cred1">Crédito à vista (1x)</option>
+                <option value="cred2">Crédito 2x</option>
+                <option value="cred3">Crédito 3x</option>
+                <option value="cred4">Crédito 4x</option>
+                <option value="cred6">Crédito 6x</option>
+                <option value="cred10">Crédito 10x</option>
+                <option value="cred12">Crédito 12x</option>
+              </select>
+            </div>
+            <div id="st-gateway-info" class="info-mini"></div>
+            <div id="site-results" class="mp-results"></div>
+          </div>
+
+          <div class="card mp-card">
+            <div class="mp-header-row">
               <div class="mp-badge" style="background:#00c87a;color:#000">VD</div>
               <span class="mp-name">Venda Direta</span>
             </div>
@@ -415,6 +479,15 @@
               <option value="custo_asc">Menor custo</option>
               <option value="custo_desc">Maior custo</option>
               <option value="margem">Menor margem</option>
+              <option value="cobertura">Menor cobertura</option>
+            </select>
+            <select id="filtro-cobertura" onchange="loadProducts()" class="filter-select">
+              <option value="">Todas coberturas</option>
+              <option value="0">🔴 Sem anúncio</option>
+              <option value="25">🟠 Cobertura baixa</option>
+              <option value="50">🟡 Cobertura parcial</option>
+              <option value="75">🔵 Boa cobertura</option>
+              <option value="100">🟢 Cobertura total</option>
             </select>
             <button class="btn-primary" onclick="showPage('calc')">+ Novo</button>
           </div>
@@ -553,6 +626,15 @@
             </div>
             <div class="field-row">
               <div class="field"><label>Tarifa energia (R$/kWh)</label><input type="number" id="cfg-kwh" value="0.90" step="0.01"/></div>
+            <div class="field">
+              <label>Amazon DBA — Região de origem</label>
+              <select id="cfg-az-regiao">
+                <option value="0">SP Capital</option>
+                <option value="1">Outras capitais do Sul e Sudeste</option>
+                <option value="2" selected>Interior do Sul e Sudeste</option>
+                <option value="3">Centro-Oeste, Norte e Nordeste</option>
+              </select>
+            </div>
               <div class="field"><label>Mão de obra 3D (R$/h)</label><input type="number" id="cfg-mao" value="35" step="1"/></div>
             </div>
             <div class="field-row">
@@ -680,8 +762,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=14"></script>
-<script src="js/calc.js?v=14"></script>
-<script src="js/app.js?v=14"></script>
+<script src="js/firebase-config.js?v=15"></script>
+<script src="js/calc.js?v=15"></script>
+<script src="js/app.js?v=15"></script>
 </body>
 </html>
