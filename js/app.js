@@ -246,6 +246,12 @@ function getFormData(){
     preco_tiktok:parseFloat(document.getElementById('f-preco-tiktok').value)||0,
     preco_magalu:parseFloat(document.getElementById('f-preco-magalu').value)||0,
     preco_direta:parseFloat(document.getElementById('f-preco-direta').value)||0,
+    preco_amazon:parseFloat(document.getElementById('f-preco-amazon')?document.getElementById('f-preco-amazon').value:0)||0,
+    preco_site:parseFloat(document.getElementById('f-preco-site')?document.getElementById('f-preco-site').value:0)||0,
+    az_taxa:parseFloat(document.getElementById('az-taxa')?document.getElementById('az-taxa').value:15)||15,
+    st_plat:parseFloat(document.getElementById('st-plat')?document.getElementById('st-plat').value:0)||0,
+    st_frete:parseFloat(document.getElementById('st-frete')?document.getElementById('st-frete').value:0)||0,
+    st_gateway:document.getElementById('st-gateway')?document.getElementById('st-gateway').value:'pix',
     modo,
     custo:parseFloat(document.getElementById('f-custo').value)||0,
     embalagem:parseFloat(document.getElementById('f-embalagem').value)||0,
@@ -382,6 +388,15 @@ async function deletarProduto(id){
   }catch(e){showToast('Erro ao apagar','error');}
 }
 
+// ── FILTRAR COBERTURA (atalho do dashboard) ──────
+function filtrarCobertura(valor){
+  showPage('products');
+  setTimeout(function(){
+    var el=document.getElementById('filtro-cobertura');
+    if(el){el.value=valor;loadProducts();}
+  },300);
+}
+
 // ── ANÁLISE RÁPIDA ────────────────────────────
 async function analisarProduto(id){
   if(!currentUser||!db)return;
@@ -513,17 +528,35 @@ async function loadProducts(){
   const searchBy=(searchField?searchField.value:'nome');
   const ordemEl=document.getElementById('filtro-ordem');
   const ordem=ordemEl?ordemEl.value:'recente';
+  const covFiltroEl=document.getElementById('filtro-cobertura');
+  const covFiltro=covFiltroEl?covFiltroEl.value:'';
+
   try{
     const snap=await db.collection('users').doc(currentUser.uid)
       .collection('produtos').orderBy('savedAt','desc').get();
     let docs=snap.docs;
     if(catFiltro) docs=docs.filter(function(d){return d.data().categoria===catFiltro;});
+    if(covFiltro!==''){
+      docs=docs.filter(function(doc){
+        var cov=calcCobertura(doc.data());
+        if(covFiltro==='0')   return cov.ativos===0;
+        if(covFiltro==='25')  return cov.ativos===1;
+        if(covFiltro==='50')  return cov.ativos>=2&&cov.ativos<=3;
+        if(covFiltro==='75')  return cov.ativos===4||cov.ativos===5;
+        if(covFiltro==='100') return cov.ativos===6;
+        return true;
+      });
+    }
     // Sort
     docs=docs.slice().sort(function(a,b){
       var da=a.data(), db=b.data();
       if(ordem==='nome') return (da.nome||'').localeCompare(db.nome||'');
       if(ordem==='custo_asc') return (da.custo||0)-(db.custo||0);
       if(ordem==='custo_desc') return (db.custo||0)-(da.custo||0);
+      if(ordem==='cobertura'){
+        var ca=calcCobertura(da), cb=calcCobertura(db);
+        return ca.ativos-cb.ativos;
+      }
       if(ordem==='margem'){
         var pbA=((da.insumos||0)+(da.nf||0)+(da.frete||0))/100;
         var pbB=((db.insumos||0)+(db.nf||0)+(db.frete||0))/100;
@@ -582,7 +615,8 @@ async function loadProducts(){
       if(d.ean)        identInfo+='<span class="pc-tag">EAN: '+d.ean+'</span>';
       if(d.fornecedor) identInfo+='<span class="pc-tag">'+d.fornecedor+'</span>';
 
-      var html='<div class="product-card" id="pc-'+id+'">';
+      var cov=calcCobertura(d);
+      var html='<div class="product-card '+cov.bgClass+'" id="pc-'+id+'">';
       html+='<input type="checkbox" class="compare-check" '+(checked?'checked':'')+' onchange="toggleCompare(this.dataset.id,this.checked)" data-id="'+id+'" title="Comparar"/>';
       html+='<div class="product-icon">'+(d.modo==='3d'?'🖨️':'📦')+'</div>';
       html+='<div class="product-info">';
@@ -592,6 +626,7 @@ async function loadProducts(){
       html+='</div>';
       html+='<div class="product-meta">'+dims+(d.peso||'')+'kg · Custo: '+fmt(d.custo)+' · '+data+'</div>';
       if(identInfo) html+='<div class="pc-ident">'+identInfo+'</div>';
+      html+='<div class="pc-coverage"><div class="mp-dots">'+mpIcons(d)+'</div><span class="cov-label" style="color:'+cov.cor+'">'+cov.label+' ('+cov.ativos+'/6)</span></div>';
       if(mpRows) html+='<div class="pc-mp-list">'+mpRows+'</div>';
       if(d.obs) html+='<div class="pc-obs">📝 '+d.obs+'</div>';
       html+='</div>';
@@ -693,16 +728,88 @@ async function loadDashboard(){
 
     const produtos=snap.docs.map(d=>({id:d.id,...d.data()}));
 
+    // Coverage stats
+    var covStats={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+    var mpCount={'preco_ml':0,'preco_shopee':0,'preco_tiktok':0,'preco_magalu':0,'preco_amazon':0,'preco_site':0};
+    produtos.forEach(function(p){
+      var cov=calcCobertura(p);
+      covStats[cov.ativos]=(covStats[cov.ativos]||0)+1;
+      Object.keys(mpCount).forEach(function(k){if(p[k]&&p[k]>0)mpCount[k]++;});
+    });
+    var semAnuncio=covStats[0]||0;
+    var cobTotal=covStats[6]||0;
+
     // Stats
     const stats=document.getElementById('dash-stats');
     const total=produtos.length;
     const total3d=produtos.filter(p=>p.modo==='3d').length;
     const custoMedio=produtos.reduce((s,p)=>s+(p.custo||0),0)/total;
-    stats.innerHTML=`
-      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">Produtos salvos</div></div>
-      <div class="stat-card"><div class="stat-num">${total3d}</div><div class="stat-label">Impressão 3D</div></div>
-      <div class="stat-card"><div class="stat-num">${total-total3d}</div><div class="stat-label">Normais</div></div>
-      <div class="stat-card"><div class="stat-num">${fmt(custoMedio)}</div><div class="stat-label">Custo médio</div></div>`;
+    stats.innerHTML=
+      '<div class="stat-card" onclick="showPage(&quot;products&quot;)" style="cursor:pointer"><div class="stat-num">'+total+'</div><div class="stat-label">Produtos salvos</div></div>'+
+      '<div class="stat-card" onclick="filtrarCobertura(&quot;100&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--green)">'+cobTotal+'</div><div class="stat-label">Cobertura total ✅</div></div>'+
+      '<div class="stat-card" onclick="filtrarCobertura(&quot;0&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--red)">'+semAnuncio+'</div><div class="stat-label">Sem anúncio 🔴</div></div>'+
+      '<div class="stat-card"><div class="stat-num">'+fmt(custoMedio)+'</div><div class="stat-label">Custo médio</div></div>';
+
+    // Coverage donut chart
+    var donutCard=document.getElementById('dash-donut-card');
+    if(donutCard) donutCard.style.display='block';
+    var mpRankCard=document.getElementById('dash-mp-rank-card');
+    if(mpRankCard) mpRankCard.style.display='block';
+    var donutEl=document.getElementById('dash-donut');
+    if(donutEl&&total>0){
+      var groups=[
+        {label:'Sem anúncio',count:covStats[0]||0,cor:'#ff4d6d'},
+        {label:'Baixa',count:(covStats[1]||0),cor:'#ff8c42'},
+        {label:'Parcial',count:(covStats[2]||0)+(covStats[3]||0),cor:'#ffd60a'},
+        {label:'Boa',count:(covStats[4]||0)+(covStats[5]||0),cor:'#4fa3f7'},
+        {label:'Total',count:covStats[6]||0,cor:'#00c87a'},
+      ].filter(function(g){return g.count>0;});
+      var total_cov=groups.reduce(function(s,g){return s+g.count;},0)||1;
+      var offset=0;
+      var slices=groups.map(function(g){
+        var pct=g.count/total_cov;
+        var dash=pct*283;
+        var s='<circle cx="50" cy="50" r="45" fill="none" stroke="'+g.cor+'" stroke-width="10" '
+          +'stroke-dasharray="'+dash.toFixed(1)+' '+(283-dash).toFixed(1)+'" '
+          +'stroke-dashoffset="'+(-(offset*283)).toFixed(1)+'" '
+          +'transform="rotate(-90 50 50)"><title>'+g.label+': '+g.count+'</title></circle>';
+        offset+=pct;
+        return s;
+      }).join('');
+      var legend=groups.map(function(g){
+        return '<div class="donut-legend-item"><span style="background:'+g.cor+'" class="legend-dot"></span>'+g.label+' <strong>'+g.count+'</strong></div>';
+      }).join('');
+      donutEl.innerHTML='<div class="donut-wrap">'
+        +'<svg viewBox="0 0 100 100" width="120" height="120">'+slices
+        +'<text x="50" y="54" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="bold">'+total+'</text>'
+        +'<text x="50" y="65" text-anchor="middle" fill="var(--text2)" font-size="7">produtos</text>'
+        +'</svg>'
+        +'<div class="donut-legend">'+legend+'</div>'
+        +'</div>';
+
+      // MP ranking
+      var mpRankEl=document.getElementById('dash-mp-rank');
+      if(mpRankEl){
+        var mps=[
+          {name:'Mercado Livre',key:'preco_ml',bg:'#FFE600',fg:'#000',badge:'ML'},
+          {name:'Shopee',key:'preco_shopee',bg:'#EE4D2D',fg:'#fff',badge:'SP'},
+          {name:'TikTok Shop',key:'preco_tiktok',bg:'#111',fg:'#00c87a',badge:'TT'},
+          {name:'Magalu',key:'preco_magalu',bg:'#0086FF',fg:'#fff',badge:'MG'},
+          {name:'Amazon',key:'preco_amazon',bg:'#FF9900',fg:'#000',badge:'AZ'},
+          {name:'Site Próprio',key:'preco_site',bg:'#6C5CE7',fg:'#fff',badge:'ST'},
+        ].sort(function(a,b){return (mpCount[b.key]||0)-(mpCount[a.key]||0);});
+        mpRankEl.innerHTML=mps.map(function(mp){
+          var cnt=mpCount[mp.key]||0;
+          var pct=Math.round((cnt/total)*100);
+          return '<div class="mp-rank-row">'
+            +'<div class="mp-dot" style="background:'+mp.bg+';color:'+mp.fg+'">'+mp.badge+'</div>'
+            +'<span class="mp-rank-name">'+mp.name+'</span>'
+            +'<div class="mp-rank-bar-wrap"><div class="mp-rank-bar" style="width:'+pct+'%;background:'+mp.bg+'"></div></div>'
+            +'<span class="mp-rank-count">'+cnt+'</span>'
+            +'</div>';
+        }).join('');
+      }
+    }
 
     // Últimos produtos
     const dashProd=document.getElementById('dash-produtos');
