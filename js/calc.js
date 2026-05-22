@@ -1,3 +1,81 @@
+// ── Amazon DBA ───────────────────────────────────────
+// Nível 1: até R$78,99 (só preço)
+const AZ_DBA_BAIXO = [
+  {max:30,    fixo:4.50},
+  {max:49.99, fixo:6.50},
+  {max:78.99, fixo:6.75},
+];
+// Nível 2: R$79 a R$199,99 (preço × peso)
+// Colunas: R$79-99.99, R$100-119.99, R$120-149.99, R$150-199.99
+const AZ_DBA_MEDIO = {
+  0.25: [11.95,13.95,15.95,17.95],
+  0.5:  [12.85,15.00,17.15,19.30],
+  1.0:  [13.45,15.70,17.95,20.20],
+  2.0:  [14.00,16.35,18.75,21.10],
+  3.0:  [14.95,17.45,19.95,22.40],
+  4.0:  [16.15,18.85,21.55,24.20],
+  5.0:  [17.00,19.90,22.75,25.60],
+  6.0:  [25.00,30.00,34.00,38.00],
+  7.0:  [26.00,31.00,35.00,39.00],
+  8.0:  [27.00,32.00,36.00,40.00],
+  9.0:  [28.00,33.00,37.00,41.00],
+  10.0: [39.50,46.00,52.75,59.00],
+};
+const AZ_DBA_MEDIO_PESOS = [0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0];
+// Nível 3: acima R$200 (peso × região)
+// Regiões: 0=SP Capital, 1=Outras cap Sul/Sudeste, 2=Interior Sul/Sudeste, 3=Centro-Oeste/Norte/Nordeste
+const AZ_DBA_ALTO = {
+  0.25: [19.95,19.95,20.45,20.45],
+  0.5:  [20.45,20.45,20.95,20.95],
+  1.0:  [21.45,21.45,21.95,21.95],
+  2.0:  [22.95,22.95,23.45,23.45],
+  3.0:  [23.95,23.95,24.45,24.45],
+  4.0:  [25.95,25.95,25.95,25.95],
+  5.0:  [27.95,27.95,27.95,27.95],
+  6.0:  [36.95,36.95,36.95,36.95],
+  7.0:  [39.45,34.45,39.45,39.45],
+  8.0:  [40.45,40.45,40.45,40.45],
+  9.0:  [45.45,46.95,46.95,46.95],
+  10.0: [59.95,61.45,65.95,65.95],
+};
+const AZ_DBA_ALTO_PESOS = [0.25,0.5,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0];
+const AZ_KG_ADICIONAL_MEDIO = 3.05;
+const AZ_KG_ADICIONAL_ALTO  = 4.00;
+
+function azDBAFixo(preco, peso, regiao){
+  regiao = regiao||2; // padrão: Interior Sul/Sudeste
+  if(preco <= 78.99){
+    var f=AZ_DBA_BAIXO.find(function(x){return preco<=x.max;})||{fixo:6.75};
+    return f.fixo;
+  }
+  // Encontra linha de peso
+  var pesoKeys = preco < 200 ? AZ_DBA_MEDIO_PESOS : AZ_DBA_ALTO_PESOS;
+  var tabela   = preco < 200 ? AZ_DBA_MEDIO : AZ_DBA_ALTO;
+  var pk = pesoKeys[pesoKeys.length-1];
+  for(var i=0;i<pesoKeys.length;i++){if(peso<=pesoKeys[i]){pk=pesoKeys[i];break;}}
+  var kgExtra = peso > 10 ? Math.ceil(peso-10) : 0;
+  var kgAd    = preco < 200 ? AZ_KG_ADICIONAL_MEDIO : AZ_KG_ADICIONAL_ALTO;
+  if(preco < 200){
+    // coluna: 79-99.99=0, 100-119.99=1, 120-149.99=2, 150-199.99=3
+    var col = preco<100?0:preco<120?1:preco<150?2:3;
+    return (tabela[pk]||tabela[10.0])[col] + kgExtra*kgAd;
+  } else {
+    return (tabela[pk]||tabela[10.0])[regiao] + kgExtra*kgAd;
+  }
+}
+
+function calcVendaAmazon(custo, pBase, lucroP, taxa, peso, regiao){
+  // Iterativo: fixo depende do preço final
+  var v = (custo+10)/(1-pBase-taxa-lucroP/100);
+  for(var i=0;i<60;i++){
+    var fixo = azDBAFixo(v, peso||0.3, regiao||2);
+    var vn = (custo+fixo)/(1-pBase-taxa-lucroP/100);
+    if(Math.abs(vn-v)<0.001){v=vn;break;}
+    v=vn;
+  }
+  return v;
+}
+
 // ══════════════════════════════════════════════
 //  PRECIFICAFLOW v2.0 — Motor de Cálculo
 // ══════════════════════════════════════════════
@@ -292,6 +370,65 @@ function calcular(){
   }).filter(Boolean);
   buildMPResults('magalu-results',mgResults);
 
+  // ─ Amazon DBA ─
+  const azTaxaEl=document.getElementById('az-taxa');
+  const azTaxa=(parseFloat(azTaxaEl?azTaxaEl.value:15)||15)/100;
+  const azEnvioEl=document.getElementById('az-envio');
+  const azEnvio=azEnvioEl?azEnvioEl.value:'dba';
+  const cfgRegEl=document.getElementById('cfg-az-regiao');
+  const azRegiao=parseInt(cfgRegEl?cfgRegEl.value:'2')||2;
+  const azResults=lucros.map(function(l,i){
+    if(azEnvio!=='dba') return null;
+    var venda=calcVendaAmazon(custo,pb.total,l,azTaxa,peso,azRegiao);
+    if(!venda||!isFinite(venda)||venda<=0)return null;
+    var fixo=azDBAFixo(venda,peso,azRegiao);
+    var lucroRS=venda*(l/100);
+    return{cid:'az-'+i,label:l+'% de lucro',venda,lucroRS,lucroP:l,margemMin,rows:[
+      ['Taxa Amazon '+(azTaxa*100).toFixed(1)+'%',venda*azTaxa,'cascade-neg'],
+      ['Tarifa DBA',fixo,'cascade-neg'],
+      ['Insumos '+(pb.insumos*100).toFixed(0)+'%',venda*pb.insumos,'cascade-neg'],
+      ['Nota fiscal '+(pb.nf*100).toFixed(0)+'%',venda*pb.nf,'cascade-neg'],
+      pb.frete?['Frete '+(pb.frete*100).toFixed(0)+'%',venda*pb.frete,'cascade-neg']:null,
+      custoObj.emb?['Embalagem',custoObj.emb,'cascade-neg']:null,
+      custoObj.mao?['Mão de obra',custoObj.mao,'cascade-neg']:null,
+      custoObj.base?['Custo produto',custoObj.base,'cascade-neg']:null,
+      null,['Lucro líquido',lucroRS,'cascade-pos'],
+    ].filter(function(r){return r===null||r;})};
+  }).filter(Boolean);
+  buildMPResults('amazon-results',azResults);
+
+  // ─ Site Próprio ─
+  const stPlatEl=document.getElementById('st-plat');
+  const stFreteEl=document.getElementById('st-frete');
+  const stGwEl=document.getElementById('st-gateway');
+  const stPlat=(parseFloat(stPlatEl?stPlatEl.value:0)||0)/100;
+  const stFreteFixo=parseFloat(stFreteEl?stFreteEl.value:0)||0;
+  const stGateway=stGwEl?stGwEl.value:'pix';
+  const stGwTaxa=getTaxaMaquininha(stGateway==='pix'?'debito':
+    stGateway==='cred1'?'credito1':stGateway==='cred2'?'credito2':
+    stGateway==='cred3'?'credito3':stGateway==='cred4'?'credito4':
+    stGateway==='cred6'?'credito6':stGateway==='cred10'?'credito10':'credito12');
+  const stInfoEl=document.getElementById('st-gateway-info');
+  if(stInfoEl&&stGwTaxa>0) stInfoEl.textContent='Gateway: '+(stGwTaxa*100).toFixed(1)+'%';
+  else if(stInfoEl) stInfoEl.textContent='';
+  const stResults=lucros.map((l,i)=>{
+    const venda=calcVendaSiteProprio(custo,pb.total,l,stPlat,stGwTaxa,stFreteFixo);
+    if(!venda||!isFinite(venda)||venda<=0)return null;
+    const lucroRS=venda*(l/100);
+    return{cid:'st-'+i,label:l+'% de lucro',venda,lucroRS,lucroP:l,margemMin,rows:[
+      stPlat?['Plataforma '+(stPlat*100).toFixed(1)+'%',venda*stPlat,'cascade-neg']:null,
+      stGwTaxa?['Gateway '+(stGwTaxa*100).toFixed(1)+'%',venda*stGwTaxa,'cascade-neg']:null,
+      stFreteFixo?['Frete fixo',stFreteFixo,'cascade-neg']:null,
+      ['Insumos '+(pb.insumos*100).toFixed(0)+'%',venda*pb.insumos,'cascade-neg'],
+      ['Nota fiscal '+(pb.nf*100).toFixed(0)+'%',venda*pb.nf,'cascade-neg'],
+      custoObj.emb?['Embalagem',custoObj.emb,'cascade-neg']:null,
+      custoObj.mao?['Mão de obra',custoObj.mao,'cascade-neg']:null,
+      custoObj.base?['Custo produto',custoObj.base,'cascade-neg']:null,
+      null,['Lucro líquido',lucroRS,'cascade-pos'],
+    ].filter(r=>r===null||r)};
+  }).filter(Boolean);
+  buildMPResults('site-results',stResults);
+
   // ─ Venda Direta ─
   const pagamento=document.getElementById('vd-pagamento').value;
   const taxaMaq=getTaxaMaquininha(pagamento);
@@ -406,6 +543,10 @@ function calcularMargemAtual(){
       getTaxa: (v)=>{ const tt=(parseFloat(document.getElementById('tt-taxa').value)||0)/100; const ta=(parseFloat(document.getElementById('tt-afil').value)||0)/100; return v*(tt+ta); }},
     {id:'magalu',label:'Magalu',        preco: parseFloat(document.getElementById('f-preco-magalu').value)||0,
       getTaxa: (v)=>v*0.148+5},
+    {id:'amazon',label:'Amazon',         preco: parseFloat(document.getElementById('f-preco-amazon')?document.getElementById('f-preco-amazon').value:0)||0,
+      getTaxa: function(v){ const t=(parseFloat(document.getElementById('az-taxa')?document.getElementById('az-taxa').value:15)||15)/100; return v*t; }},
+    {id:'site',  label:'Site Próprio',   preco: parseFloat(document.getElementById('f-preco-site')?document.getElementById('f-preco-site').value:0)||0,
+      getTaxa: function(v){ const p=(parseFloat(document.getElementById('st-plat')?document.getElementById('st-plat').value:0)||0)/100; const gw=getTaxaMaquininha('debito'); return v*(p+gw); }},
     {id:'direta',label:'Venda Direta',  preco: parseFloat(document.getElementById('f-preco-direta').value)||0,
       getTaxa: (v)=>{ const tm=getTaxaMaquininha(document.getElementById('vd-pagamento').value); return v*tm; }},
   ].filter(m=>m.preco>0);
@@ -541,3 +682,36 @@ function renderDashChart(produtos){
   el.innerHTML=html;
 }
 
+// ── COBERTURA DE MARKETPLACES ─────────────────────────
+// 6 marketplaces: ML, Shopee, TikTok, Magalu, Amazon, Site Próprio
+function calcCobertura(produto){
+  var mps = ['preco_ml','preco_shopee','preco_tiktok','preco_magalu','preco_amazon','preco_site'];
+  var ativos = mps.filter(function(k){ return produto[k] && produto[k] > 0; }).length;
+  var pct = Math.round((ativos/6)*100);
+  var cor, label, bgClass;
+  if(ativos === 0)      { cor='#ff4d6d'; label='Sem anúncio';       bgClass='cov-0'; }
+  else if(ativos <= 1)  { cor='#ff8c42'; label='Cobertura baixa';   bgClass='cov-25'; }
+  else if(ativos <= 3)  { cor='#ffd60a'; label='Cobertura parcial'; bgClass='cov-50'; }
+  else if(ativos <= 4)  { cor='#4fa3f7'; label='Boa cobertura';     bgClass='cov-75'; }
+  else                  { cor='#00c87a'; label='Cobertura total';   bgClass='cov-100'; }
+  return {ativos, total:6, pct, cor, label, bgClass};
+}
+
+function mpIcons(produto){
+  var mps = [
+    {key:'preco_ml',    icon:'ML', bg:'#FFE600', fg:'#000'},
+    {key:'preco_shopee',icon:'SP', bg:'#EE4D2D', fg:'#fff'},
+    {key:'preco_tiktok',icon:'TT', bg:'#111',    fg:'#00c87a'},
+    {key:'preco_magalu',icon:'MG', bg:'#0086FF', fg:'#fff'},
+    {key:'preco_amazon',icon:'AZ', bg:'#FF9900', fg:'#000'},
+    {key:'preco_site',  icon:'ST', bg:'#6C5CE7', fg:'#fff'},
+  ];
+  return mps.map(function(m){
+    var ativo = produto[m.key] && produto[m.key] > 0;
+    return '<div class="mp-dot" style="background:'+(ativo?m.bg:'var(--bg5)')+
+      ';color:'+(ativo?m.fg:'var(--text3)')+
+      ';opacity:'+(ativo?'1':'0.4')+
+      '" title="'+(ativo?'Anunciado':'Não anunciado')+'">'
+      +m.icon+'</div>';
+  }).join('');
+}
