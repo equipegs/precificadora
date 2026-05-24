@@ -300,24 +300,32 @@ async function salvarProduto(){
       setTimeout(function(){ mostrarPaywall('trial_limit'); }, 1500);
       return;
     }
-    // Build history snapshot
-    var pb2=(data.insumos+data.nf+data.frete)/100;
-    var custo2=(data.custo||0)+(data.embalagem||0);
-    var vml2=calcVendaML(custo2,pb2,data.lucros?data.lucros[1]:10,(data.ml_taxa||14)/100,data.peso||0.3);
+    // Build history snapshot safely
+    var pb2=((parseFloat(data.insumos)||0)+(parseFloat(data.nf)||0)+(parseFloat(data.frete)||0))/100;
+    var custo2=(parseFloat(data.custo)||0)+(parseFloat(data.embalagem)||0);
+    var lucro2=Array.isArray(data.lucros)&&data.lucros[1]?parseFloat(data.lucros[1]):10;
+    var mlTaxa2=(parseFloat(data.ml_taxa)||14)/100;
+    var peso2=parseFloat(data.peso)||0.3;
+    var vml2=0;
+    try{ vml2=calcVendaML(custo2,pb2,lucro2,mlTaxa2,peso2)||0; }catch(e2){ vml2=0; }
     var snapshot={
       date:new Date().toISOString(),
-      custo:data.custo||0,
-      preco_ml:data.preco_ml||0,
-      vml_calculado:vml2||0,
+      custo:parseFloat(data.custo)||0,
+      preco_ml:parseFloat(data.preco_ml)||0,
+      vml_calculado:vml2,
     };
 
-    // Always save as new product (simple, no index required)
+    // Clean data - remove undefined values that Firestore rejects
+    var cleanData={};
+    Object.keys(data).forEach(function(k){ if(data[k]!==undefined) cleanData[k]=data[k]; });
+
+    // Save to Firestore
     await db.collection('users').doc(currentUser.uid).collection('produtos')
-      .add(Object.assign({},data,{historico:[snapshot]}));
+      .add(Object.assign({},cleanData,{historico:[snapshot]}));
     showToast('Produto salvo! 💾','success');
     limparFormulario();
     atualizarContadorTrial();
-  }catch(e){showToast('Erro ao salvar: '+e.message,'error');}
+  }catch(e){console.error('Erro salvar:',e);showToast('Erro ao salvar: '+e.message,'error');}
 }
 
 // ── CARREGAR PRODUTO ──────────────────────────
