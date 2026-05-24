@@ -300,41 +300,23 @@ async function salvarProduto(){
       setTimeout(function(){ mostrarPaywall('trial_limit'); }, 1500);
       return;
     }
-    // Check if product with same name already exists to update instead of duplicate
-    const snap=await db.collection('users').doc(currentUser.uid)
-      .collection('produtos').where('nome','==',data.nome).limit(1).get();
-
-    const pb=(data.insumos+data.nf+data.frete)/100;
-    const custo=(data.custo||0)+(data.embalagem||0);
-    const vml=calcVendaML(custo,pb,data.lucros[1],(data.ml_taxa||14)/100,data.ml_peso||0.3);
-    const snapshot={
+    // Build history snapshot
+    var pb2=(data.insumos+data.nf+data.frete)/100;
+    var custo2=(data.custo||0)+(data.embalagem||0);
+    var vml2=calcVendaML(custo2,pb2,data.lucros?data.lucros[1]:10,(data.ml_taxa||14)/100,data.peso||0.3);
+    var snapshot={
       date:new Date().toISOString(),
-      custo:data.custo,
+      custo:data.custo||0,
       preco_ml:data.preco_ml||0,
-      preco_shopee:data.preco_shopee||0,
-      preco_tiktok:data.preco_tiktok||0,
-      preco_magalu:data.preco_magalu||0,
-      vml_calculado:vml||0,
+      vml_calculado:vml2||0,
     };
 
-    if(!snap.empty){
-      // Update existing — append to history
-      const docRef=snap.docs[0].ref;
-      const existing=snap.docs[0].data();
-      const history=(existing.historico||[]).slice(-29); // keep last 30
-      history.push(snapshot);
-      await docRef.update(Object.assign({},data,{historico:history,updatedAt:new Date().toISOString()}));
-      showToast('Produto atualizado! 💾','success');
-      limparFormulario();
-      atualizarContadorTrial();
-    }else{
-      // New product
-      await db.collection('users').doc(currentUser.uid).collection('produtos')
-        .add(Object.assign({},data,{historico:[snapshot]}));
-      showToast('Produto salvo! 💾','success');
-      limparFormulario();
-      atualizarContadorTrial();
-    }
+    // Always save as new product (simple, no index required)
+    await db.collection('users').doc(currentUser.uid).collection('produtos')
+      .add(Object.assign({},data,{historico:[snapshot]}));
+    showToast('Produto salvo! 💾','success');
+    limparFormulario();
+    atualizarContadorTrial();
   }catch(e){showToast('Erro ao salvar: '+e.message,'error');}
 }
 
