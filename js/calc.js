@@ -1,3 +1,10 @@
+// ── Site Próprio ──────────────────────────────────────
+function calcVendaSiteProprio(custo, pBase, lucroP, taxaPlat, taxaGateway, freteFixo){
+  var denom = 1 - pBase - taxaPlat - taxaGateway - lucroP/100;
+  if(denom <= 0) return null;
+  return (custo + (freteFixo||0))/denom;
+}
+
 // ── Amazon DBA ───────────────────────────────────────
 // Nível 1: até R$78,99 (só preço)
 const AZ_DBA_BAIXO = [
@@ -528,50 +535,51 @@ function exportarPDF(){
 
 // ── MARGEM ATUAL ──────────────────────────────
 function calcularMargemAtual(){
-  const custo = getCusto().total;
-  const pb = getPBase();
-  const margemMin = parseFloat(document.getElementById('f-margem-min').value)||10;
-  const box = document.getElementById('box-margens-atuais');
+  var custoObj=getCusto();
+  var custo=custoObj.total;
+  var pb=getPBase();
+  var margemMin=parseFloat(document.getElementById('f-margem-min').value)||10;
+  var box=document.getElementById('box-margens-atuais');
+  if(!box) return;
   if(!custo){box.style.display='none';return;}
 
-  const mps = [
-    {id:'ml',    label:'Mercado Livre', preco: parseFloat(document.getElementById('f-preco-ml').value)||0,
-      getTaxa: (v)=>{ const t=(parseFloat(document.getElementById('ml-taxa').value)||0)/100; const op=mlCustoOp(parseFloat(document.getElementById('f-peso').value)||0.3,v); return v*t+op; }},
-    {id:'shopee',label:'Shopee',        preco: parseFloat(document.getElementById('f-preco-shopee').value)||0,
-      getTaxa: (v)=>{ const f=shopeeFaixa(v); return v*f.pct+f.fixo; }},
-    {id:'tiktok',label:'TikTok Shop',   preco: parseFloat(document.getElementById('f-preco-tiktok').value)||0,
-      getTaxa: (v)=>{ const tt=(parseFloat(document.getElementById('tt-taxa').value)||0)/100; const ta=(parseFloat(document.getElementById('tt-afil').value)||0)/100; return v*(tt+ta); }},
-    {id:'magalu',label:'Magalu',        preco: parseFloat(document.getElementById('f-preco-magalu').value)||0,
-      getTaxa: (v)=>v*0.148+5},
-    {id:'amazon',label:'Amazon',         preco: parseFloat(document.getElementById('f-preco-amazon')?document.getElementById('f-preco-amazon').value:0)||0,
-      getTaxa: function(v){ const t=(parseFloat(document.getElementById('az-taxa')?document.getElementById('az-taxa').value:15)||15)/100; return v*t; }},
-    {id:'site',  label:'Site Próprio',   preco: parseFloat(document.getElementById('f-preco-site')?document.getElementById('f-preco-site').value:0)||0,
-      getTaxa: function(v){ const p=(parseFloat(document.getElementById('st-plat')?document.getElementById('st-plat').value:0)||0)/100; const gw=getTaxaMaquininha('debito'); return v*(p+gw); }},
-    {id:'direta',label:'Venda Direta',  preco: parseFloat(document.getElementById('f-preco-direta').value)||0,
-      getTaxa: (v)=>{ const tm=getTaxaMaquininha(document.getElementById('vd-pagamento').value); return v*tm; }},
-  ].filter(m=>m.preco>0);
+  var mps=[
+    {id:'ml',    label:'Mercado Livre',preco:parseFloat(document.getElementById('f-preco-ml')?document.getElementById('f-preco-ml').value:0)||0,
+      getTaxa:function(v){var t=(parseFloat(document.getElementById('ml-taxa').value)||0)/100;var op=mlCustoOp(parseFloat(document.getElementById('f-peso').value)||0.3,v);return v*t+op;}},
+    {id:'shopee',label:'Shopee',       preco:parseFloat(document.getElementById('f-preco-shopee')?document.getElementById('f-preco-shopee').value:0)||0,
+      getTaxa:function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;}},
+    {id:'tiktok',label:'TikTok Shop',  preco:parseFloat(document.getElementById('f-preco-tiktok')?document.getElementById('f-preco-tiktok').value:0)||0,
+      getTaxa:function(v){var tt=(parseFloat(document.getElementById('tt-taxa').value)||0)/100;var ta=(parseFloat(document.getElementById('tt-afil').value)||0)/100;return v*(tt+ta);}},
+    {id:'magalu',label:'Magalu',        preco:parseFloat(document.getElementById('f-preco-magalu')?document.getElementById('f-preco-magalu').value:0)||0,
+      getTaxa:function(v){return v*0.148+5;}},
+    {id:'amazon',label:'Amazon',        preco:parseFloat(document.getElementById('f-preco-amazon')?document.getElementById('f-preco-amazon').value:0)||0,
+      getTaxa:function(v){var t=(parseFloat(document.getElementById('az-taxa')?document.getElementById('az-taxa').value:15)||15)/100;var reg=parseInt(document.getElementById('cfg-az-regiao')?document.getElementById('cfg-az-regiao').value:2)||2;return v*t+azDBAFixo(v,parseFloat(document.getElementById('f-peso').value)||0.3,reg);}},
+    {id:'site',  label:'Site Próprio',  preco:parseFloat(document.getElementById('f-preco-site')?document.getElementById('f-preco-site').value:0)||0,
+      getTaxa:function(v){var p=(parseFloat(document.getElementById('st-plat')?document.getElementById('st-plat').value:0)||0)/100;var gw=getTaxaMaquininha('debito');return v*(p+gw);}},
+    {id:'direta',label:'Venda Direta',  preco:parseFloat(document.getElementById('f-preco-direta').value)||0,
+      getTaxa:function(v){var tm=getTaxaMaquininha(document.getElementById('vd-pagamento').value);return v*tm;}},
+  ].filter(function(m){return m.preco>0;});
 
   if(!mps.length){box.style.display='none';return;}
-  box.style.display='block';
 
-  let html='<div class="margens-atuais">';
-  html+='<div class="margens-title">📊 Margem real nos seus preços atuais</div>';
-  mps.forEach(m=>{
-    const v=m.preco;
-    const taxaRS=m.getTaxa(v);
-    const despRS=v*pb.total;
-    const lucroRS=v-custo-taxaRS-despRS;
-    const lucroP=(lucroRS/v)*100;
-    const abaixo=lucroP<margemMin;
-    const cor=lucroP<0?'var(--red)':abaixo?'var(--yellow)':'var(--green)';
-    html+=`<div class="margem-row ${abaixo?'margem-warn':''}">
-      <span class="margem-mp">${m.label}</span>
-      <span class="margem-preco">${fmt(v)}</span>
-      <span class="margem-lucro" style="color:${cor}">${lucroP.toFixed(1)}% · ${fmt(lucroRS)}</span>
-      ${abaixo?'<span class="margem-alert">⚠️</span>':'<span class="margem-ok">✓</span>'}
-    </div>`;
+  var html='<div class="margens-atuais"><div class="margens-title">📊 Margem real nos seus preços atuais</div>';
+  mps.forEach(function(m){
+    var v=m.preco;
+    var taxaRS=m.getTaxa(v);
+    var despRS=v*pb.total;
+    var lucroRS=v-custo-taxaRS-despRS;
+    var lucroP=(lucroRS/v)*100;
+    var abaixo=lucroP<margemMin;
+    var cor=lucroP<0?'var(--red)':abaixo?'var(--yellow)':'var(--green)';
+    html+='<div class="margem-row '+(abaixo?'margem-warn':'')+'">'
+      +'<span class="margem-mp">'+m.label+'</span>'
+      +'<span class="margem-preco">'+fmt(v)+'</span>'
+      +'<span class="margem-lucro" style="color:'+cor+'">'+lucroP.toFixed(1)+'% · '+fmt(lucroRS)+'</span>'
+      +(abaixo?'<span class="margem-alert">⚠️</span>':'<span class="margem-ok">✓</span>')
+      +'</div>';
   });
   html+='</div>';
+  box.style.display='block';
   box.innerHTML=html;
 }
 
@@ -581,13 +589,14 @@ function limparFormulario(){
   var textFields=['f-nome','f-custo','f-embalagem','f-comp','f-alt','f-larg',
     'f-sku','f-ean','f-fornecedor','f-obs',
     'f-gramas','f-custo-fil','f-horas','f-mao-min',
-    'f-preco-ml','f-preco-shopee','f-preco-tiktok','f-preco-magalu','f-preco-direta'];
+    'f-preco-ml','f-preco-shopee','f-preco-tiktok','f-preco-magalu',
+    'f-preco-direta','f-preco-amazon','f-preco-site'];
   textFields.forEach(function(id){
     var el=document.getElementById(id);
     if(el) el.value='';
   });
   // Reset numeric defaults
-  var defaults={'f-peso':'0.3','f-watts':'350','f-kwh':'0.90','f-mao-hora':'35','f-embalagem':'0',
+  var defaults={'f-peso':'0.3','f-watts':'350','f-kwh':'0.90','f-mao-hora':'35','f-embalagem':'0','az-taxa':'15','st-plat':'0','st-frete':'0',
     'f-insumos':'3','f-nf':'8','f-frete':'0','f-margem-min':'10',
     'f-l1':'5','f-l2':'10','f-l3':'15','f-l4':'20','ml-taxa':'14','tt-taxa':'6','tt-afil':'5'};
   Object.keys(defaults).forEach(function(id){
@@ -604,10 +613,11 @@ function limparFormulario(){
   // Reset mode
   if(typeof setMode==='function') setMode('normal');
   // Clear results
-  ['ml-results','shopee-results','tiktok-results','magalu-results','direta-results']
+  ['ml-results','shopee-results','tiktok-results','magalu-results','direta-results','amazon-results','site-results']
     .forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
   var els={
-    'ml-custo-op':'textContent','vd-taxa-info':'textContent'
+    'ml-custo-op':'textContent','vd-taxa-info':'textContent',
+    'az-dba-info':'textContent','st-gateway-info':'textContent'
   };
   Object.keys(els).forEach(function(id){
     var el=document.getElementById(id);
