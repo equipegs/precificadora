@@ -535,8 +535,10 @@ function exportarPDF(){
 
 // ── MARGEM ATUAL ──────────────────────────────
 function calcularMargemAtual(){
-  var custoObj=getCusto();
-  var custo=custoObj.total;
+  // Use custo direto do campo + embalagem (sem depender do modo 3D)
+  var custoBase=parseFloat(document.getElementById('f-custo')?document.getElementById('f-custo').value:0)||0;
+  var emb=parseFloat(document.getElementById('f-embalagem')?document.getElementById('f-embalagem').value:0)||0;
+  var custo=custoBase+emb;
   var pb=getPBase();
   var margemMin=parseFloat(document.getElementById('f-margem-min').value)||10;
   var box=document.getElementById('box-margens-atuais');
