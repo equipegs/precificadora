@@ -312,6 +312,10 @@
                 <div class="field"><label>Amazon (R$)</label><input type="number" id="f-preco-amazon" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
                 <div class="field"><label>Site Próprio (R$)</label><input type="number" id="f-preco-site" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/></div>
               </div>
+              <div class="field">
+                <label>Venda Direta (R$)</label>
+                <input type="number" id="f-preco-direta" placeholder="0,00" step="0.01" oninput="calcularMargemAtual()"/>
+              </div>
               <div id="box-margens-atuais" style="display:none;margin-top:10px"></div>
               <p class="field-hint" style="margin-top:8px">💡 Campos preenchidos = produto anunciado naquele marketplace. Usado para análise de cobertura.</p>
             </div>
@@ -762,8 +766,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=17"></script>
-<script src="js/calc.js?v=17"></script>
-<script src="js/app.js?v=17"></script>
+<script src="js/firebase-config.js?v=18"></script>
+<script src="js/calc.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
 </body>
 </html>
