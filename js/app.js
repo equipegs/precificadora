@@ -315,9 +315,18 @@ async function salvarProduto(){
       vml_calculado:vml2,
     };
 
-    // Clean data - remove undefined values that Firestore rejects
+    // Clean data - remove undefined/NaN that Firestore rejects
     var cleanData={};
-    Object.keys(data).forEach(function(k){ if(data[k]!==undefined) cleanData[k]=data[k]; });
+    Object.keys(data).forEach(function(k){
+      var v=data[k];
+      if(v===undefined||v===null) return;
+      if(typeof v==='number'&&isNaN(v)) return;
+      cleanData[k]=v;
+    });
+    // Ensure lucros is always a valid array
+    if(!Array.isArray(cleanData.lucros)||cleanData.lucros.length===0){
+      cleanData.lucros=[5,10,15,20];
+    }
 
     // Save to Firestore
     await db.collection('users').doc(currentUser.uid).collection('produtos')
@@ -325,7 +334,7 @@ async function salvarProduto(){
     showToast('Produto salvo! 💾','success');
     limparFormulario();
     atualizarContadorTrial();
-  }catch(e){console.error('Erro salvar:',e);showToast('Erro ao salvar: '+e.message,'error');}
+  }catch(e){console.error('Erro salvar completo:',e);showToast('Erro: '+e.code+' — '+e.message,'error');}
 }
 
 // ── CARREGAR PRODUTO ──────────────────────────
