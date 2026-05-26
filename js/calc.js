@@ -535,31 +535,45 @@ function exportarPDF(){
 
 // ── MARGEM ATUAL ──────────────────────────────
 function calcularMargemAtual(){
-  // Use custo direto do campo + embalagem (sem depender do modo 3D)
   var custoBase=parseFloat(document.getElementById('f-custo')?document.getElementById('f-custo').value:0)||0;
   var emb=parseFloat(document.getElementById('f-embalagem')?document.getElementById('f-embalagem').value:0)||0;
   var custo=custoBase+emb;
   var pb=getPBase();
-  var margemMin=parseFloat(document.getElementById('f-margem-min').value)||10;
+  var margemMin=parseFloat(document.getElementById('f-margem-min')?document.getElementById('f-margem-min').value:10)||10;
   var box=document.getElementById('box-margens-atuais');
   if(!box) return;
   if(!custo){box.style.display='none';return;}
 
+  function safeVal(id,def){var el=document.getElementById(id);return el?parseFloat(el.value)||def:def;}
+
   var mps=[
-    {id:'ml',    label:'Mercado Livre',preco:parseFloat(document.getElementById('f-preco-ml')?document.getElementById('f-preco-ml').value:0)||0,
-      getTaxa:function(v){var t=(parseFloat(document.getElementById('ml-taxa').value)||0)/100;var op=mlCustoOp(parseFloat(document.getElementById('f-peso').value)||0.3,v);return v*t+op;}},
-    {id:'shopee',label:'Shopee',       preco:parseFloat(document.getElementById('f-preco-shopee')?document.getElementById('f-preco-shopee').value:0)||0,
+    {label:'Mercado Livre', preco:safeVal('f-preco-ml',0),
+      getTaxa:function(v){return v*(safeVal('ml-taxa',14)/100)+mlCustoOp(safeVal('f-peso',0.3),v);}},
+    {label:'Shopee',        preco:safeVal('f-preco-shopee',0),
       getTaxa:function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;}},
-    {id:'tiktok',label:'TikTok Shop',  preco:parseFloat(document.getElementById('f-preco-tiktok')?document.getElementById('f-preco-tiktok').value:0)||0,
-      getTaxa:function(v){var tt=(parseFloat(document.getElementById('tt-taxa').value)||0)/100;var ta=(parseFloat(document.getElementById('tt-afil').value)||0)/100;return v*(tt+ta);}},
-    {id:'magalu',label:'Magalu',        preco:parseFloat(document.getElementById('f-preco-magalu')?document.getElementById('f-preco-magalu').value:0)||0,
+    {label:'TikTok Shop',   preco:safeVal('f-preco-tiktok',0),
+      getTaxa:function(v){return v*(safeVal('tt-taxa',6)+safeVal('tt-afil',5))/100;}},
+    {label:'Magalu',        preco:safeVal('f-preco-magalu',0),
       getTaxa:function(v){return v*0.148+5;}},
-    {id:'amazon',label:'Amazon',        preco:parseFloat(document.getElementById('f-preco-amazon')?document.getElementById('f-preco-amazon').value:0)||0,
-      getTaxa:function(v){var t=(parseFloat(document.getElementById('az-taxa')?document.getElementById('az-taxa').value:15)||15)/100;var reg=parseInt(document.getElementById('cfg-az-regiao')?document.getElementById('cfg-az-regiao').value:2)||2;return v*t+azDBAFixo(v,parseFloat(document.getElementById('f-peso').value)||0.3,reg);}},
-    {id:'site',  label:'Site Próprio',  preco:parseFloat(document.getElementById('f-preco-site')?document.getElementById('f-preco-site').value:0)||0,
-      getTaxa:function(v){var p=(parseFloat(document.getElementById('st-plat')?document.getElementById('st-plat').value:0)||0)/100;var gw=getTaxaMaquininha('debito');return v*(p+gw);}},
-    {id:'direta',label:'Venda Direta',  preco:parseFloat(document.getElementById('f-preco-direta').value)||0,
-      getTaxa:function(v){var tm=getTaxaMaquininha(document.getElementById('vd-pagamento').value);return v*tm;}},
+    {label:'Amazon',        preco:safeVal('f-preco-amazon',0),
+      getTaxa:function(v){
+        var t=safeVal('az-taxa',15)/100;
+        var regEl=document.getElementById('cfg-az-regiao');
+        var reg=regEl?parseInt(regEl.value)||2:2;
+        return v*t+azDBAFixo(v,safeVal('f-peso',0.3),reg);
+      }},
+    {label:'Site Próprio',  preco:safeVal('f-preco-site',0),
+      getTaxa:function(v){
+        var p=safeVal('st-plat',0)/100;
+        var gw=getTaxaMaquininha('debito');
+        return v*(p+gw);
+      }},
+    {label:'Venda Direta',  preco:safeVal('f-preco-direta',0),
+      getTaxa:function(v){
+        var pgEl=document.getElementById('vd-pagamento');
+        var pg=pgEl?pgEl.value:'outros';
+        return v*getTaxaMaquininha(pg);
+      }},
   ].filter(function(m){return m.preco>0;});
 
   if(!mps.length){box.style.display='none';return;}
@@ -567,7 +581,8 @@ function calcularMargemAtual(){
   var html='<div class="margens-atuais"><div class="margens-title">📊 Margem real nos seus preços atuais</div>';
   mps.forEach(function(m){
     var v=m.preco;
-    var taxaRS=m.getTaxa(v);
+    var taxaRS=0;
+    try{taxaRS=m.getTaxa(v);}catch(e){taxaRS=0;}
     var despRS=v*pb.total;
     var lucroRS=v-custo-taxaRS-despRS;
     var lucroP=(lucroRS/v)*100;
