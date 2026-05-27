@@ -607,6 +607,8 @@ async function loadProducts(){
       if(d.preco_shopee) mpRows+=margemBadge('Shopee',  d.preco_shopee, function(v){var f=shopeeFaixa(v);return v*f.pct+f.fixo;});
       if(d.preco_tiktok) mpRows+=margemBadge('TikTok',  d.preco_tiktok, function(v){return v*((d.tt_taxa||6)+(d.tt_afil||5))/100;});
       if(d.preco_magalu) mpRows+=margemBadge('Magalu',  d.preco_magalu, function(v){return v*0.148+5;});
+      if(d.preco_amazon) mpRows+=margemBadge('Amazon',  d.preco_amazon, function(v){return v*(d.az_taxa||15)/100+azDBAFixo(v,d.peso||0.3,d.az_regiao||2);});
+      if(d.preco_site)   mpRows+=margemBadge('Site',    d.preco_site,   function(v){return v*(d.st_plat||0)/100;});
       if(d.preco_direta) mpRows+=margemBadge('Direta',  d.preco_direta, function(){return 0;});
 
       var identInfo='';
