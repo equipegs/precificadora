@@ -229,6 +229,7 @@ function showPage(page){
   if(page==='products')loadProducts();
   if(page==='dashboard')loadDashboard();
   if(page==='simulator')simAtualizar();
+  if(page==='suppliers')loadSuppliers();
   if(window.innerWidth<=700)closeSidebar();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
@@ -940,6 +941,7 @@ function showToast(msg,type='success'){
 // ── INIT ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   loadConfig();
+  loadTheme();
   firebase.auth().onAuthStateChanged(function(user){
     currentUser=user;
     if(user){
@@ -1002,6 +1004,217 @@ function nextStep(){
 function checkOnboarding(){
   const seen = localStorage.getItem('mgf_onboarded');
   if(!seen) mostrarOnboarding();
+}
+
+
+// ── TEMA CLARO/ESCURO ─────────────────────────
+function toggleTheme(){
+  var isLight=document.body.classList.toggle('light-mode');
+  localStorage.setItem('mgf_theme',isLight?'light':'dark');
+  document.getElementById('btn-theme').textContent=isLight?'☀️':'🌙';
+}
+function loadTheme(){
+  var saved=localStorage.getItem('mgf_theme');
+  if(saved==='light'){
+    document.body.classList.add('light-mode');
+    var btn=document.getElementById('btn-theme');
+    if(btn) btn.textContent='☀️';
+  }
+}
+
+// ── FORNECEDORES ──────────────────────────────
+var compareSupList=[];
+
+function abrirModalFornecedor(id){
+  var modal=document.getElementById('modal-fornecedor');
+  var title=document.getElementById('modal-sup-title');
+  document.getElementById('sup-edit-id').value=id||'';
+  if(id){
+    title.textContent='Editar Fornecedor';
+    // Load data
+    if(!currentUser||!db)return;
+    db.collection('users').doc(currentUser.uid).collection('fornecedores').doc(id).get().then(function(doc){
+      if(!doc.exists)return;
+      var d=doc.data();
+      document.getElementById('sup-nome').value=d.nome||'';
+      document.getElementById('sup-produto').value=d.produto||'';
+      document.getElementById('sup-custo').value=d.custo||'';
+      document.getElementById('sup-frete').value=d.frete||'';
+      document.getElementById('sup-minimo').value=d.minimo||'';
+      document.getElementById('sup-prazo').value=d.prazo||'';
+      document.getElementById('sup-contato').value=d.contato||'';
+      document.getElementById('sup-obs').value=d.obs||'';
+    });
+  } else {
+    title.textContent='Novo Fornecedor';
+    ['sup-nome','sup-produto','sup-custo','sup-frete','sup-minimo','sup-prazo','sup-contato','sup-obs']
+      .forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  }
+  modal.style.display='flex';
+}
+
+async function salvarFornecedor(){
+  if(!currentUser||!db){showToast('Faça login para salvar','error');return;}
+  var nome=document.getElementById('sup-nome').value.trim();
+  if(!nome){showToast('Nome do fornecedor é obrigatório','error');return;}
+  var data={
+    nome:nome,
+    produto:document.getElementById('sup-produto').value.trim()||'',
+    custo:parseFloat(document.getElementById('sup-custo').value)||0,
+    frete:parseFloat(document.getElementById('sup-frete').value)||0,
+    minimo:parseInt(document.getElementById('sup-minimo').value)||1,
+    prazo:parseInt(document.getElementById('sup-prazo').value)||0,
+    contato:document.getElementById('sup-contato').value.trim()||'',
+    obs:document.getElementById('sup-obs').value.trim()||'',
+    savedAt:new Date().toISOString(),
+  };
+  try{
+    var editId=document.getElementById('sup-edit-id').value;
+    if(editId){
+      await db.collection('users').doc(currentUser.uid).collection('fornecedores').doc(editId).update(data);
+      showToast('Fornecedor atualizado! ✅','success');
+    } else {
+      await db.collection('users').doc(currentUser.uid).collection('fornecedores').add(data);
+      showToast('Fornecedor salvo! 🏭','success');
+    }
+    document.getElementById('modal-fornecedor').style.display='none';
+    loadSuppliers();
+  }catch(e){showToast('Erro: '+e.message,'error');}
+}
+
+async function loadSuppliers(){
+  if(!currentUser||!db)return;
+  var el=document.getElementById('suppliers-list');
+  if(!el)return;
+  el.innerHTML='<p style="color:var(--text2);font-size:13px;padding:8px">Carregando...</p>';
+  var search=(document.getElementById('supplier-search')||{value:''}).value.trim().toLowerCase();
+  try{
+    var snap=await db.collection('users').doc(currentUser.uid)
+      .collection('fornecedores').orderBy('savedAt','desc').get();
+    var docs=snap.docs;
+    if(search) docs=docs.filter(function(d){
+      var data=d.data();
+      return (data.nome||'').toLowerCase().includes(search)||(data.produto||'').toLowerCase().includes(search);
+    });
+    if(!docs.length){
+      el.innerHTML='<div class="empty-state"><div class="empty-icon">🏭</div><p>Nenhum fornecedor cadastrado ainda.<br/>Clique em "+ Novo Fornecedor" para começar!</p></div>';
+      return;
+    }
+    el.innerHTML=docs.map(function(doc){
+      var d=doc.data();
+      var id=doc.id;
+      var checked=compareSupList.includes(id);
+      var custoTotal=d.custo+(d.frete||0)/(d.minimo||1);
+      return '<div class="supplier-card" id="sc-'+id+'">'
+        +'<input type="checkbox" class="compare-check" '+(checked?'checked':'')+' data-id="'+id+'" onchange="toggleCompareSup(this.dataset.id,this.checked)"/>'
+        +'<div class="supplier-icon">🏭</div>'
+        +'<div class="supplier-info">'
+          +'<div class="supplier-name">'+d.nome+(d.produto?'<span class="product-tag tag-cat">'+d.produto+'</span>':'')+'</div>'
+          +'<div class="supplier-meta">'
+            +(d.custo?'Custo: <strong>'+fmt(d.custo)+'</strong>':'')
+            +(d.frete?' · Frete: '+fmt(d.frete):'')
+            +(d.minimo?' · Mín: '+d.minimo+' un':'')
+            +(d.prazo?' · Prazo: '+d.prazo+'d':'')
+          +'</div>'
+          +(d.obs?'<div class="pc-obs">📝 '+d.obs+'</div>':'')
+        +'</div>'
+        +'<div class="supplier-right">'
+          +'<div class="supplier-total">'+fmt(custoTotal)+'<span style="font-size:11px;color:var(--text2)">/un c/frete</span></div>'
+          +(d.contato?'<a href="'+(d.contato.startsWith('http')?d.contato:'https://'+d.contato)+'" target="_blank" class="btn-icon" style="font-size:11px">🔗 Site</a>':'')
+        +'</div>'
+        +'<div class="product-actions">'
+          +'<button class="btn-icon" data-id="'+id+'" onclick="usarFornecedor(this.dataset.id)">✔ Usar</button>'
+          +'<button class="btn-icon" data-id="'+id+'" onclick="abrirModalFornecedor(this.dataset.id)">✏️</button>'
+          +'<button class="btn-icon danger" data-id="'+id+'" onclick="deletarFornecedor(this.dataset.id)">✕</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }catch(e){el.innerHTML='<p style="color:var(--red)">Erro: '+e.message+'</p>';}
+}
+
+async function deletarFornecedor(id){
+  if(!confirm('Apagar este fornecedor?'))return;
+  if(!currentUser||!db)return;
+  try{
+    await db.collection('users').doc(currentUser.uid).collection('fornecedores').doc(id).delete();
+    showToast('Fornecedor apagado','success');
+    loadSuppliers();
+  }catch(e){showToast('Erro ao apagar','error');}
+}
+
+function usarFornecedor(id){
+  if(!currentUser||!db)return;
+  db.collection('users').doc(currentUser.uid).collection('fornecedores').doc(id).get().then(function(doc){
+    if(!doc.exists)return;
+    var d=doc.data();
+    var custoEl=document.getElementById('f-custo');
+    var fornEl=document.getElementById('f-fornecedor');
+    if(custoEl&&d.custo) custoEl.value=d.custo;
+    if(fornEl&&d.nome) fornEl.value=d.nome;
+    if(typeof calcular==='function') calcular();
+    showPage('calc');
+    showToast('Fornecedor "'+d.nome+'" aplicado ao cálculo! ✅','success');
+  });
+}
+
+function toggleCompareSup(id,checked){
+  if(checked&&compareSupList.length>=3){
+    showToast('Máximo 3 fornecedores para comparar','error');
+    var cb=document.querySelector('[data-id="'+id+'"].compare-check');
+    if(cb) cb.checked=false;
+    return;
+  }
+  if(checked) compareSupList.push(id);
+  else compareSupList=compareSupList.filter(function(x){return x!==id;});
+  var bar=document.getElementById('compare-suppliers-bar');
+  var cnt=document.getElementById('compare-sup-count');
+  bar.style.display=compareSupList.length>1?'flex':'none';
+  cnt.textContent=compareSupList.length+' selecionado'+(compareSupList.length!==1?'s':'');
+}
+
+function limparComparacaoFornecedores(){
+  compareSupList=[];
+  document.querySelectorAll('#suppliers-list .compare-check').forEach(function(c){c.checked=false;});
+  document.getElementById('compare-suppliers-bar').style.display='none';
+}
+
+async function compararFornecedores(){
+  if(compareSupList.length<2){showToast('Selecione ao menos 2 fornecedores','error');return;}
+  if(!currentUser||!db)return;
+  try{
+    var docs=await Promise.all(compareSupList.map(function(id){
+      return db.collection('users').doc(currentUser.uid).collection('fornecedores').doc(id).get();
+    }));
+    var sups=docs.map(function(d){return Object.assign({id:d.id},d.data());});
+    var fields=[
+      {label:'Custo unitário',key:'custo',fmt:fmt},
+      {label:'Frete',key:'frete',fmt:fmt},
+      {label:'Pedido mínimo',key:'minimo',fmt:function(v){return v+' un';}},
+      {label:'Prazo de entrega',key:'prazo',fmt:function(v){return v+' dias';}},
+      {label:'Custo c/ frete/un',key:'_total',fmt:fmt},
+    ];
+    sups.forEach(function(s){s._total=s.custo+(s.frete||0)/(s.minimo||1);});
+    var body=document.getElementById('modal-compare-sup-body');
+    var html='<div style="overflow-x:auto"><table class="compare-table">'
+      +'<thead><tr><th>Campo</th>'+sups.map(function(s){return '<th>'+s.nome+'</th>';}).join('')+'</tr></thead>'
+      +'<tbody>';
+    fields.forEach(function(f){
+      var vals=sups.map(function(s){return s[f.key]||0;});
+      var best=f.key==='prazo'||f.key==='custo'||f.key==='_total'?Math.min.apply(null,vals):null;
+      html+='<tr><td>'+f.label+'</td>'+sups.map(function(s){
+        var v=s[f.key]||0;
+        var isBest=best!==null&&v===best&&best>0;
+        return '<td class="'+(isBest?'compare-price':'')+'">'+f.fmt(v)+(isBest?' ⭐':'')+'</td>';
+      }).join('')+'</tr>';
+    });
+    if(sups[0]&&sups[0].obs!==undefined){
+      html+='<tr class="compare-section"><td colspan="'+(sups.length+1)+'">Observações</td></tr>';
+      html+='<tr><td>Obs</td>'+sups.map(function(s){return '<td style="font-size:12px;color:var(--text2)">'+(s.obs||'—')+'</td>';}).join('')+'</tr>';
+    }
+    html+='</tbody></table></div>';
+    body.innerHTML=html;
+    document.getElementById('modal-compare-sup').style.display='flex';
+  }catch(e){showToast('Erro ao comparar','error');}
 }
 
 // ── TERMOS E LEGAL ────────────────────────────
