@@ -113,6 +113,7 @@
         <button class="nav-item" onclick="showPage('calc')" data-page="calc"><span class="nav-icon">🧮</span><span>Calcular</span></button>
         <button class="nav-item" onclick="showPage('products')" data-page="products"><span class="nav-icon">📦</span><span>Meus Produtos</span></button>
         <button class="nav-item" onclick="showPage('simulator')" data-page="simulator"><span class="nav-icon">🎛️</span><span>Simulador</span></button>
+        <button class="nav-item" onclick="showPage('suppliers')" data-page="suppliers"><span class="nav-icon">🏭</span><span>Fornecedores</span></button>
         <button class="nav-item" onclick="showPage('hubs')" data-page="hubs"><span class="nav-icon">🔗</span><span>Central Hubs</span></button>
         <button class="nav-item" onclick="showPage('config')" data-page="config"><span class="nav-icon">⚙️</span><span>Configurações</span></button>
       </nav>
@@ -129,6 +130,7 @@
         <div class="topbar-right">
           <button class="btn-topbar" onclick="showPage('calc')">+ Novo Cálculo</button>
           <button class="btn-topbar-clear" id="btn-limpar" onclick="limparFormulario()" style="display:none" title="Limpar formulário">🗑️ Limpar</button>
+          <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema">🌙</button>
           <span class="user-avatar" id="user-avatar"></span>
         </div>
       </div>
@@ -544,6 +546,64 @@
         </div>
       </div>
 
+      <!-- ══ FORNECEDORES ══ -->
+      <div class="page" id="page-suppliers">
+        <div class="page-header">
+          <div><h2>🏭 Fornecedores</h2><p class="page-sub">Cadastre e compare fornecedores do mesmo produto</p></div>
+          <button class="btn-primary" onclick="abrirModalFornecedor()">+ Novo Fornecedor</button>
+        </div>
+        <div id="suppliers-filter" class="search-bar" style="margin-bottom:14px">
+          <input type="text" id="supplier-search" class="search-input" placeholder="Buscar fornecedor ou produto..." oninput="loadSuppliers()"/>
+          <button class="btn-outline" onclick="document.getElementById('supplier-search').value='';loadSuppliers()">✕ Limpar</button>
+        </div>
+        <div id="compare-suppliers-bar" class="compare-bar" style="display:none">
+          <span id="compare-sup-count">0 selecionados</span>
+          <button class="btn-primary" onclick="compararFornecedores()">Comparar</button>
+          <button class="btn-outline" onclick="limparComparacaoFornecedores()">Limpar</button>
+        </div>
+        <div id="suppliers-list"></div>
+      </div>
+
+      <!-- ══ MODAL FORNECEDOR ══ -->
+      <div id="modal-fornecedor" class="modal" style="display:none">
+        <div class="modal-box" style="max-width:520px">
+          <div class="modal-header">
+            <h3 id="modal-sup-title">Novo Fornecedor</h3>
+            <button onclick="document.getElementById('modal-fornecedor').style.display='none'">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="sup-edit-id"/>
+            <div class="field"><label>Nome do fornecedor *</label><input type="text" id="sup-nome" placeholder="Ex: Fornecedor ABC Ltda"/></div>
+            <div class="field"><label>Produto / Referência</label><input type="text" id="sup-produto" placeholder="Ex: Sensor PIR Zigbee"/></div>
+            <div class="field-row">
+              <div class="field"><label>Custo unitário (R$)</label><input type="number" id="sup-custo" placeholder="0,00" step="0.01"/></div>
+              <div class="field"><label>Frete (R$)</label><input type="number" id="sup-frete" placeholder="0,00" step="0.01"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Pedido mínimo (un)</label><input type="number" id="sup-minimo" placeholder="1" step="1"/></div>
+              <div class="field"><label>Prazo de entrega (dias)</label><input type="number" id="sup-prazo" placeholder="7" step="1"/></div>
+            </div>
+            <div class="field"><label>Site / Contato</label><input type="text" id="sup-contato" placeholder="Ex: www.fornecedor.com.br ou WhatsApp"/></div>
+            <div class="field"><label>Observações</label><textarea id="sup-obs" rows="3" placeholder="Ex: Melhor preço acima de 50 unidades..." style="width:100%;padding:9px 11px;font-size:13px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--font);resize:vertical"></textarea></div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="btn-primary" onclick="salvarFornecedor()" style="flex:1">Salvar Fornecedor</button>
+              <button class="btn-outline" onclick="document.getElementById('modal-fornecedor').style.display='none'">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MODAL COMPARAR FORNECEDORES ══ -->
+      <div id="modal-compare-sup" class="modal" style="display:none">
+        <div class="modal-box modal-wide">
+          <div class="modal-header">
+            <h3>Comparar Fornecedores</h3>
+            <button onclick="document.getElementById('modal-compare-sup').style.display='none'">✕</button>
+          </div>
+          <div id="modal-compare-sup-body" class="modal-body"></div>
+        </div>
+      </div>
+
       <!-- ══ CENTRAL HUBS ══ -->
       <div class="page" id="page-hubs">
         <div class="page-header"><div><h2>🔗 Central Hubs</h2><p class="page-sub">Acesso direto aos painéis de cada plataforma</p></div></div>
@@ -766,8 +826,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="js/firebase-config.js?v=20"></script>
-<script src="js/calc.js?v=20"></script>
-<script src="js/app.js?v=20"></script>
+<script src="js/firebase-config.js?v=21"></script>
+<script src="js/calc.js?v=21"></script>
+<script src="js/app.js?v=21"></script>
 </body>
 </html>
