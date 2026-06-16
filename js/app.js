@@ -1,10 +1,18 @@
 // ══════════════════════════════════════════════
+
+// ── XSS PROTECTION ───────────────────────────
+function esc(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
 //  PRECIFICAFLOW v2.0 — App Principal
 // ══════════════════════════════════════════════
 
 let currentUser = null;
 let db = null;
 let compareList = [];
+
+var _currentProductId = null;
 
 // ── ACCESS CONTROL ───────────────────────────
 const TRIAL_DAYS = 10;
@@ -47,7 +55,7 @@ async function checkAccess(user){
     const productsUsed = snap.size;
     const productsLeft = Math.max(0, TRIAL_PRODUCT_LIMIT - productsUsed);
 
-    // Bloqueia se passou 2 dias OU atingiu 5 produtos
+    // Bloqueia se passou 10 dias OU atingiu 5 produtos
     if(daysLeft <= 0){
       return {ok:false, reason:'trial_expired', daysLeft:0, productsUsed, productsLeft};
     }
@@ -119,7 +127,7 @@ function mostrarPaywall(reason){
     if(reason==='trial_limit'){
       title.textContent = 'Você atingiu o limite de 5 produtos no período de teste — assine para continuar';
     } else {
-      title.textContent = 'Seu período de teste de 2 dias encerrou — assine para continuar';
+      title.textContent = 'Seu período de teste de 10 dias encerrou — assine para continuar';
     }
   }
 }
@@ -189,6 +197,7 @@ async function iniciarApp(){
 
     showPage('dashboard');
     loadDashboard();
+    setTimeout(checkOnboarding, 800);
   } else {
     mostrarPaywall(0);
   }
@@ -329,10 +338,20 @@ async function salvarProduto(){
       cleanData.lucros=[5,10,15,20];
     }
 
-    // Save to Firestore
-    await db.collection('users').doc(currentUser.uid).collection('produtos')
-      .add(Object.assign({},cleanData,{historico:[snapshot]}));
-    showToast('Produto salvo! 💾','success');
+    // Save or Update Firestore
+    if(_currentProductId){
+      var existDoc=await db.collection('users').doc(currentUser.uid).collection('produtos').doc(_currentProductId).get();
+      var existHist=existDoc.exists?(existDoc.data().historico||[]).slice(-29):[];
+      existHist.push(snapshot);
+      await db.collection('users').doc(currentUser.uid).collection('produtos').doc(_currentProductId)
+        .update(Object.assign({},cleanData,{historico:existHist,updatedAt:new Date().toISOString()}));
+      showToast('Produto atualizado! 💾','success');
+    } else {
+      await db.collection('users').doc(currentUser.uid).collection('produtos')
+        .add(Object.assign({},cleanData,{historico:[snapshot]}));
+      showToast('Produto salvo! 💾','success');
+    }
+    _currentProductId=null;
     limparFormulario();
     atualizarContadorTrial();
   }catch(e){console.error('Erro salvar completo:',e);showToast('Erro: '+e.code+' — '+e.message,'error');}
@@ -349,6 +368,8 @@ async function carregarProduto(id){
       ['f-nome','nome',''],['f-sku','sku',''],['f-ean','ean',''],['f-fornecedor','fornecedor',''],
       ['f-preco-ml','preco_ml',0],['f-preco-shopee','preco_shopee',0],
       ['f-preco-tiktok','preco_tiktok',0],['f-preco-magalu','preco_magalu',0],['f-preco-direta','preco_direta',0],
+      ['f-preco-amazon','preco_amazon',0],['f-preco-site','preco_site',0],
+      ['az-taxa','az_taxa',15],['st-plat','st_plat',0],['st-frete','st_frete',0],['st-gateway','st_gateway','pix'],
       ['f-custo','custo',0],['f-embalagem','embalagem',0],
       ['f-comp','comp',0],['f-alt','alt',0],['f-larg','larg',0],
       ['f-peso','peso',0.3],['f-categoria','categoria',''],
@@ -369,9 +390,10 @@ async function carregarProduto(id){
     });
     if(d.lucros)d.lucros.forEach((l,i)=>{const el=document.getElementById(`f-l${i+1}`);if(el)el.value=l;});
     setMode(d.modo||'normal');
+    _currentProductId=id;
     calcular();
     showPage('calc');
-    showToast('Produto carregado!','success');
+    showToast('Produto carregado! Edite e salve para atualizar.','success');
   }catch(e){showToast('Erro ao carregar','error');}
 }
 
@@ -435,9 +457,9 @@ async function analisarProduto(id){
     if(d.embalagem) html+='<span>📦 Embalagem: <strong>'+fmt(d.embalagem)+'</strong></span>';
     if(d.peso) html+='<span>⚖️ Peso: <strong>'+d.peso+'kg</strong></span>';
     if(d.sku) html+='<span>SKU: <strong>'+d.sku+'</strong></span>';
-    if(d.fornecedor) html+='<span>🏭 '+d.fornecedor+'</span>';
+    if(d.fornecedor) html+='<span>🏭 '+esc(d.fornecedor)+'</span>';
     html+='</div>';
-    if(d.obs) html+='<div style="margin-top:8px;font-size:12px;color:var(--text2);background:var(--bg3);padding:8px 10px;border-radius:6px">📝 '+d.obs+'</div>';
+    if(d.obs) html+='<div style="margin-top:8px;font-size:12px;color:var(--text2);background:var(--bg3);padding:8px 10px;border-radius:6px">📝 '+esc(d.obs)+'</div>';
     html+='</div>';
 
     // Table
@@ -613,16 +635,16 @@ async function loadProducts(){
       if(d.preco_direta) mpRows+=margemBadge('Direta',  d.preco_direta, function(){return 0;});
 
       var identInfo='';
-      if(d.sku)        identInfo+='<span class="pc-tag">SKU: '+d.sku+'</span>';
-      if(d.ean)        identInfo+='<span class="pc-tag">EAN: '+d.ean+'</span>';
-      if(d.fornecedor) identInfo+='<span class="pc-tag">'+d.fornecedor+'</span>';
+      if(d.sku)        identInfo+='<span class="pc-tag">SKU: '+esc(d.sku)+'</span>';
+      if(d.ean)        identInfo+='<span class="pc-tag">EAN: '+esc(d.ean)+'</span>';
+      if(d.fornecedor) identInfo+='<span class="pc-tag">'+esc(d.fornecedor)+'</span>';
 
       var cov=calcCobertura(d);
       var html='<div class="product-card '+cov.bgClass+'" id="pc-'+id+'">';
       html+='<input type="checkbox" class="compare-check" '+(checked?'checked':'')+' onchange="toggleCompare(this.dataset.id,this.checked)" data-id="'+id+'" title="Comparar"/>';
       html+='<div class="product-icon">'+(d.modo==='3d'?'🖨️':'📦')+'</div>';
       html+='<div class="product-info">';
-      html+='<div class="product-name">'+d.nome;
+      html+='<div class="product-name">'+esc(d.nome);
       if(d.modo==='3d') html+='<span class="product-tag tag-3d">3D</span>';
       if(catLabel) html+='<span class="product-tag tag-cat">'+catLabel+'</span>';
       html+='</div>';
@@ -630,7 +652,7 @@ async function loadProducts(){
       if(identInfo) html+='<div class="pc-ident">'+identInfo+'</div>';
       html+='<div class="pc-coverage"><div class="mp-dots">'+mpIcons(d)+'</div><span class="cov-label" style="color:'+cov.cor+'">'+cov.label+' ('+cov.ativos+'/6)</span></div>';
       if(mpRows) html+='<div class="pc-mp-list">'+mpRows+'</div>';
-      if(d.obs) html+='<div class="pc-obs">📝 '+d.obs+'</div>';
+      if(d.obs) html+='<div class="pc-obs">📝 '+esc(d.obs)+'</div>';
       html+='</div>';
       html+='<div class="product-actions">';
       html+='<button class="btn-icon" data-id="'+id+'" onclick="analisarProduto(this.dataset.id)">👁 Análise</button>';
@@ -866,7 +888,7 @@ async function loadDashboard(){
     if(alertas.length){
       alertasCard.style.display='block';
       document.getElementById('dash-alertas').innerHTML=alertas.map(function(a){
-        return '<div class="alert-row">⚠️ <strong>'+a.nome+'</strong> no '+a.mp+': '+fmt(a.preco)+' · margem '+a.lucroP.toFixed(1)+'%<button class="btn-icon" style="margin-left:auto" onclick="carregarProduto(\'' +a.id+ '\')">Ver</button></div>';
+        return '<div class="alert-row">⚠️ <strong>'+esc(a.nome)+'</strong> no '+esc(a.mp)+': '+fmt(a.preco)+' · margem '+a.lucroP.toFixed(1)+'%<button class="btn-icon" style="margin-left:auto" onclick="carregarProduto(\'' +a.id+ '\')">Ver</button></div>';
       }).join('');
     }else{alertasCard.style.display='none';}
   }catch(e){console.error(e);}
@@ -1109,14 +1131,14 @@ async function loadSuppliers(){
         +'<input type="checkbox" class="compare-check" '+(checked?'checked':'')+' data-id="'+id+'" onchange="toggleCompareSup(this.dataset.id,this.checked)"/>'
         +'<div class="supplier-icon">🏭</div>'
         +'<div class="supplier-info">'
-          +'<div class="supplier-name">'+d.nome+(d.produto?'<span class="product-tag tag-cat">'+d.produto+'</span>':'')+'</div>'
+          +'<div class="supplier-name">'+esc(d.nome)+(d.produto?'<span class="product-tag tag-cat">'+esc(d.produto)+'</span>':'')+'</div>'
           +'<div class="supplier-meta">'
             +(d.custo?'Custo: <strong>'+fmt(d.custo)+'</strong>':'')
             +(d.frete?' · Frete: '+fmt(d.frete):'')
             +(d.minimo?' · Mín: '+d.minimo+' un':'')
             +(d.prazo?' · Prazo: '+d.prazo+'d':'')
           +'</div>'
-          +(d.obs?'<div class="pc-obs">📝 '+d.obs+'</div>':'')
+          +(d.obs?'<div class="pc-obs">📝 '+esc(d.obs)+'</div>':'')
         +'</div>'
         +'<div class="supplier-right">'
           +'<div class="supplier-total">'+fmt(custoTotal)+'<span style="font-size:11px;color:var(--text2)">/un c/frete</span></div>'
