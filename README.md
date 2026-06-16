@@ -21,7 +21,7 @@
 
 > **Chega de vender no prejuízo. Sua margem, sob controle.**
 
-O **Margify** é uma ferramenta web gratuita que calcula automaticamente o preço de venda ideal para os principais marketplaces brasileiros — considerando todas as taxas, comissões, impostos e a margem de lucro desejada.
+O **Margify** é uma ferramenta web que calcula automaticamente o preço de venda ideal para os principais marketplaces brasileiros — considerando todas as taxas, comissões, impostos e a margem de lucro desejada. Oferece 10 dias de teste gratuito, com plano mensal a partir de R$19,90.
 
 ---
 
