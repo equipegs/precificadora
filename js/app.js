@@ -456,7 +456,7 @@ async function analisarProduto(id){
     html+='<span>💰 Custo: <strong>'+fmt(d.custo)+'</strong></span>';
     if(d.embalagem) html+='<span>📦 Embalagem: <strong>'+fmt(d.embalagem)+'</strong></span>';
     if(d.peso) html+='<span>⚖️ Peso: <strong>'+d.peso+'kg</strong></span>';
-    if(d.sku) html+='<span>SKU: <strong>'+d.sku+'</strong></span>';
+    if(d.sku) html+='<span>SKU: <strong>'+esc(d.sku)+'</strong></span>';
     if(d.fornecedor) html+='<span>🏭 '+esc(d.fornecedor)+'</span>';
     html+='</div>';
     if(d.obs) html+='<div style="margin-top:8px;font-size:12px;color:var(--text2);background:var(--bg3);padding:8px 10px;border-radius:6px">📝 '+esc(d.obs)+'</div>';
@@ -699,7 +699,7 @@ async function compararProdutos(){
           <thead>
             <tr>
               <th>Campo</th>
-              ${dados.map(d=>`<th>${d.nome}</th>`).join('')}
+              ${dados.map(d=>`<th>${esc(d.nome)}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -839,7 +839,7 @@ async function loadDashboard(){
     const dashProd=document.getElementById('dash-produtos');
     dashProd.innerHTML=produtos.slice(0,5).map(p=>`
       <div class="dash-prod-row" onclick="carregarProduto('${p.id}')">
-        <span>${p.modo==='3d'?'🖨️':'📦'} ${p.nome}</span>
+        <span>${p.modo==='3d'?'🖨️':'📦'} ${esc(p.nome)}</span>
         <span class="mono" style="color:var(--text2)">${fmt(p.custo)}</span>
       </div>`).join('');
 
@@ -855,7 +855,7 @@ async function loadDashboard(){
     const dashMarg=document.getElementById('dash-margens');
     dashMarg.innerHTML=margens.slice(0,5).map(p=>`
       <div class="dash-marg-row">
-        <span>${p.nome}</span>
+        <span>${esc(p.nome)}</span>
         <div>
           <span class="mono green" style="font-weight:700">${fmt(p.lucroRS)}</span>
           <span style="color:var(--text2);font-size:11px;margin-left:6px">ML ${fmt(p.vml)}</span>
@@ -1142,7 +1142,7 @@ async function loadSuppliers(){
         +'</div>'
         +'<div class="supplier-right">'
           +'<div class="supplier-total">'+fmt(custoTotal)+'<span style="font-size:11px;color:var(--text2)">/un c/frete</span></div>'
-          +(d.contato?'<a href="'+(d.contato.startsWith('http')?d.contato:'https://'+d.contato)+'" target="_blank" class="btn-icon" style="font-size:11px">🔗 Site</a>':'')
+          +(d.contato&&!/^\s*javascript:/i.test(d.contato)?'<a href="'+esc(d.contato.startsWith('http')?d.contato:'https://'+d.contato)+'" target="_blank" rel="noopener noreferrer" class="btn-icon" style="font-size:11px">🔗 Site</a>':'')
         +'</div>'
         +'<div class="product-actions">'
           +'<button class="btn-icon" data-id="'+id+'" onclick="usarFornecedor(this.dataset.id)">✔ Usar</button>'
@@ -1218,7 +1218,7 @@ async function compararFornecedores(){
     sups.forEach(function(s){s._total=s.custo+(s.frete||0)/(s.minimo||1);});
     var body=document.getElementById('modal-compare-sup-body');
     var html='<div style="overflow-x:auto"><table class="compare-table">'
-      +'<thead><tr><th>Campo</th>'+sups.map(function(s){return '<th>'+s.nome+'</th>';}).join('')+'</tr></thead>'
+      +'<thead><tr><th>Campo</th>'+sups.map(function(s){return '<th>'+esc(s.nome)+'</th>';}).join('')+'</tr></thead>'
       +'<tbody>';
     fields.forEach(function(f){
       var vals=sups.map(function(s){return s[f.key]||0;});
@@ -1231,7 +1231,7 @@ async function compararFornecedores(){
     });
     if(sups[0]&&sups[0].obs!==undefined){
       html+='<tr class="compare-section"><td colspan="'+(sups.length+1)+'">Observações</td></tr>';
-      html+='<tr><td>Obs</td>'+sups.map(function(s){return '<td style="font-size:12px;color:var(--text2)">'+(s.obs||'—')+'</td>';}).join('')+'</tr>';
+      html+='<tr><td>Obs</td>'+sups.map(function(s){return '<td style="font-size:12px;color:var(--text2)">'+esc(s.obs||'—')+'</td>';}).join('')+'</tr>';
     }
     html+='</tbody></table></div>';
     body.innerHTML=html;
